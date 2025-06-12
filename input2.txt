@@ -1,0 +1,16 @@
+var l : Int = 34
+var m : Int = 20
+
+var n : Int
+n = 5
+
+print (l)
+print (m)
+print (n)
+
+print (l + m)
+print (l * m)
+print (l + 6)
+print (m - 2)
+print (n * 3)
+

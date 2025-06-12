@@ -1,0 +1,9 @@
+var x : Int
+x = 34
+
+var a : Float = 31f
+var b : Int = 32
+var c : Float = 31.1f
+
+print(x)
+print(a)

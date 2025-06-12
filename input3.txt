@@ -1,0 +1,9 @@
+var b : Int
+b = 4
+print (b)
+
+b--
+b+=2
+b++
+
+print(b)
