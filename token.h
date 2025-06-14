@@ -21,7 +21,7 @@ public:
 
     Type type;
     std::string text;
-
+    bool has_f = false;
     Token(Type type);
     Token(Type type, char c);
     Token(Type type, const std::string& source, int first, int last);

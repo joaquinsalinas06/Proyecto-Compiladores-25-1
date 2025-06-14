@@ -20,31 +20,42 @@ Token* Scanner::nextToken() {
 
     if (isdigit(c)) {
         current++;
-        bool is_float = false;
-        bool has_f = false; // Variable para verificar si hay 'f' al final
-        // Recorremos la parte entera
+        bool is_float = false; // verifico si es un decimal
+        bool is_int = false; // para verificar si es un numero natural, entero, etc
+        bool has_f = false; // para verificar si hay 'f' al final
+
+        // parte entera
         while (current < input.length() && isdigit(input[current]))
             current++;
 
-        // Si hay un punto seguido de más dígitos, lo marcamos como flotante
+        // encuentro el punto seguido de más dígitos, se marca como flotante
         if (current < input.length() && input[current] == '.') {
             is_float = true;
             current++;
-            // Continuamos con los demás dígitos
+            // dígitos después del . 
             while (current < input.length() && isdigit(input[current]))
                 current++;
+        } else {
+            is_int = true;
         }
 
-        // Detectar si es un número flotante con 'f' al final
+        // número decimal con "f" al final
         if (is_float && current < input.length() && input[current] == 'f') {
             has_f = true;
             current++;
             token = new Token(Token::DECIMAL, input, first, current - first);
         } 
+
         else if (is_float) {
-            // Si es un flotante pero no tiene 'f', generamos un error
+            // si es flotante pero no tiene 'f', generamos un error
             token = new Token(Token::ERR, input, first, current - first);
-        } 
+        }
+        // número entero pero tiene "f" al final, se trata como float pero el número es un NUM
+        else if (is_int && current < input.length() && input[current] == 'f'){
+            has_f = true;
+            current++;
+            token = new Token(Token::NUM, input, first, current - first);
+        }
         else {
             // Si no tiene punto ni 'f', es un número entero
             token = new Token(Token::NUM, input, first, current - first);
