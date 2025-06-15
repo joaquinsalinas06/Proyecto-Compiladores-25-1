@@ -26,7 +26,7 @@ class Visitor {
 public:
     virtual int visit(BinaryExp* exp) = 0;
     virtual int visit(NumberExp* exp) = 0;
-    virtual float visit(DecimalExp* exp) = 0;
+    virtual int visit(DecimalExp* exp) = 0;
     virtual int visit(BoolExp* exp) = 0;
     virtual int visit(IdentifierExp* exp) = 0;
     virtual void visit(AssignStatement* stm) = 0;
@@ -50,7 +50,7 @@ public:
     int visit(BinaryExp* exp) override;
     int visit(NumberExp* exp) override;
 
-    float visit(DecimalExp* exp) override;
+    int visit(DecimalExp* exp) override;
     int visit(BoolExp* exp) override;
     int visit(IdentifierExp* exp) override;
     void visit(AssignStatement* stm) override;
@@ -66,11 +66,14 @@ public:
 
 class EVALVisitor : public Visitor {
     Environment env;
+    int lastType;    // 1=int, 2=float, 3=bool
+    int lastInt;     // último valor entero evaluado
+    float lastFloat; // último valor float evaluado
 public:
     void ejecutar(Program* program);
     int visit(BinaryExp* exp) override;
     int visit(NumberExp* exp) override;
-    float visit(DecimalExp* exp) override;
+    int visit(DecimalExp* exp) override;
     int visit(BoolExp* exp) override;
     int visit(IdentifierExp* exp) override;
     void visit(AssignStatement* stm) override;
@@ -91,7 +94,7 @@ public:
     int visit(BinaryExp* exp) override;
     int visit(NumberExp* exp) override;
   
-    float visit(DecimalExp* exp) override;
+    int visit(DecimalExp* exp) override;
     int visit(BoolExp* exp) override;
     int visit(IdentifierExp* exp) override;
     void visit(AssignStatement* stm) override;

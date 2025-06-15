@@ -1,9 +1,12 @@
 var a : Int = 5
-var x : Int;
-x = 34;
-var b : Int = 32;
+var x : Int
+x=2+3*2*2
+var b : Int = 32
 
-println(b);
-println(x);
-println(a);
-println(a+b)
+
+println(b-a)
+println(x)
+println(a)
+println(x+b)
+println((4+6*4)/(4))
+print(4 + 6 * 4 / 4)

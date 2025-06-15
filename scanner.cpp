@@ -110,7 +110,7 @@ Token* Scanner::nextToken() {
                     token = new Token(Token::PLUS_ASSIGN, "+=", 0, 2);
                     current++;
                 } else if (current + 1 < input.length() && input[current + 1] == '+') {
-                    token = new Token(Token::PLUS_PLUS, "++", 0, 2);
+                    token = new Token(Token::PLUSPLUS, "++", 0, 2);
                     current++;
                 } else {
                     token = new Token(Token::PLUS, c);
@@ -121,7 +121,7 @@ Token* Scanner::nextToken() {
                     token = new Token(Token::MINUS_ASSIGN, "-=", 0, 2);
                     current++;
                 } else if (current + 1 < input.length() && input[current + 1] == '-') {
-                    token = new Token(Token::MINUS_MINUS, "--", 0, 2);
+                    token = new Token(Token::MINUSMINUS, "--", 0, 2);
                     current++;
                 } else {
                     token = new Token(Token::MINUS, c);

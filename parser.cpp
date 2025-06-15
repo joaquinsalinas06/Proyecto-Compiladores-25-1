@@ -82,18 +82,6 @@ VarDec* Parser::parseVarDec() {
     return vd;
 }
 
-
-// VarDecList* Parser::parseVarDecList() {
-//     VarDecList* vdl = new VarDecList();
-//     VarDec* aux;
-//     aux = parseVarDec();
-//     while (aux != NULL) {
-//         vdl->add(aux);
-//         aux = parseVarDec();
-//     }
-//     return vdl;
-// }
-
 VarDecList* Parser::parseVarDecList() {
     VarDecList* vdl = new VarDecList();
     VarDec* aux = parseVarDec(); // Se analiza la primera declaración de variable
@@ -107,17 +95,6 @@ VarDecList* Parser::parseVarDecList() {
     }
     return vdl;
 }
-
-
-
-// StatementList* Parser::parseStatementList() {
-//     StatementList* sl = new StatementList();
-//     sl->add(parseStatement());
-//     while (match(Token::PC)) {
-//         sl->add(parseStatement());
-//     }
-//     return sl;
-// }
 
 StatementList* Parser::parseStatementList() {
     StatementList* sl = new StatementList();
@@ -134,15 +111,6 @@ StatementList* Parser::parseStatementList() {
     }
     return sl;
 }
-
-
-
-// Body* Parser::parseBody() {
-//     VarDecList* vdl = parseVarDecList();
-//     StatementList* sl = parseStatementList();
-//     return new Body(vdl, sl);
-// }
-
 
 Body* Parser::parseBody() {
     VarDecList* vdl = new VarDecList();
@@ -299,4 +267,3 @@ Exp* Parser::parseFactor() {
     cout << "Error: se esperaba un número o identificador." << endl;
     exit(0);
 }
-

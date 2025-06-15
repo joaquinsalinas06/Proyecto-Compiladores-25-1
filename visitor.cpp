@@ -87,7 +87,7 @@ int PrintVisitor::visit(NumberExp* exp) {
 }
 
 
-float PrintVisitor::visit(DecimalExp* exp) {
+int PrintVisitor::visit(DecimalExp* exp) {
     cout << fixed << setprecision(1) << exp->value << "f";  // Para flotantes con 'f'
     return 0; 
 }
@@ -106,7 +106,6 @@ void PrintVisitor::visit(AssignStatement* stm) {
     imprimirIndentacion();
     cout << stm->id << " = ";
     stm->rhs->accept(this); // Imprime la expresión derecha
-    cout << ";"; // Asegúrate de que imprima el ';'
 }
 
 
@@ -139,13 +138,6 @@ void PrintVisitor::imprimirIndentacion() {
 // while
 // for
 
-// void PrintVisitor::visit(VarDec* stm){
-//     imprimirIndentacion();
-//     cout << "var " << stm->id << " : " << stm->type;
-//     if ( stm ->value != nullptr ){
-//         cout << stm->id << " = " << stm->value->accept(this);
-//     } cout << ";" << endl; // Asegúrate de poner un ";" si es necesario en la impresión
-// }
 void PrintVisitor::visit(VarDec* stm){
     imprimirIndentacion();
     cout << "var " << stm->id << " : " << stm->type;
@@ -153,7 +145,7 @@ void PrintVisitor::visit(VarDec* stm){
         cout << " = ";
         stm->value->accept(this);
     }
-    cout << ";" << endl;
+    cout << endl;
 }
 
 
@@ -175,76 +167,119 @@ void PrintVisitor::visit(Body* stm){
     stm->slist->accept(this);
 }
 
-// ///////////////////////////////////////////////////////////////////////////////////
-int EVALVisitor::visit(BinaryExp* exp) {
-    int result;
-    int v1 = exp->left->accept(this);
-    int v2 = exp->right->accept(this);
-    switch(exp->op) {
-        case PLUS_OP: result = v1 + v2; break;
-        case MINUS_OP: result = v1 - v2; break;
-        case MUL_OP: result = v1 * v2; break;
-        case DIV_OP: result = v1 / v2; break; // Evalúa -> Typechecker debe analizar que no se divida por 0
-        case LT_OP: result = v1 < v2; break;
-        case LE_OP: result = v1 <= v2; break;
-        case EQ_OP: result = v1 == v2; break;
-    }
-    return result;
+////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
+
+static int evalTypeFromEnv(Environment& env, string name) {
+    string strtype = env.lookup_type(name);
+    if (strtype == "Int") return 1;
+    if (strtype == "Float") return 2;
+    if (strtype == "Bool") return 3;
+    return -1;
 }
 
 int EVALVisitor::visit(NumberExp* exp) {
-    return exp->value;
+    lastType = 1;
+    lastInt = exp->value;
+    return lastType;
 }
-
-
-float EVALVisitor::visit(DecimalExp* exp) {
-    return exp->value;
+int EVALVisitor::visit(DecimalExp* exp) {
+    lastType = 2;
+    lastFloat = exp->value;
+    return lastType;
 }
-
 int EVALVisitor::visit(BoolExp* exp) {
-    return exp->value;
+    lastType = 3;
+    lastInt = exp->value;
+    return lastType;
 }
-
 int EVALVisitor::visit(IdentifierExp* exp) {
-    return env.lookup(exp->name);   
+    int t = evalTypeFromEnv(env, exp->name);
+    lastType = t;
+    if (t == 1) lastInt = env.lookup(exp->name);
+    else if (t == 2) lastFloat = env.lookup_float(exp->name);
+    else if (t == 3) lastInt = env.lookup(exp->name);
+    return t;
+}
+int EVALVisitor::visit(BinaryExp* exp) {
+    int lt = exp->left->accept(this);
+    int leftType = lastType;
+    int ri = exp->right->accept(this);
+    int rightType = lastType;
+
+    // si hay float, convertimos ambos lados a float y operamos en float
+    if (leftType == 2 || rightType == 2) {
+        float lv, rv;
+        // obtener valores float de ambas ramas
+        exp->left->accept(this);
+        lv = (lastType == 2) ? lastFloat : (float)lastInt;
+        exp->right->accept(this);
+        rv = (lastType == 2) ? lastFloat : (float)lastInt;
+        lastType = 2;
+        switch(exp->op) {
+            case PLUS_OP: lastFloat = lv + rv; break;
+            case MINUS_OP: lastFloat = lv - rv; break;
+            case MUL_OP: lastFloat = lv * rv; break;
+            case DIV_OP: lastFloat = lv / rv; break;
+            case LT_OP:   lastType=3; lastInt=(lv < rv); break;
+            case LE_OP:   lastType=3; lastInt=(lv <= rv); break;
+            case EQ_OP:   lastType=3; lastInt=(lv == rv); break;
+        }
+        return lastType;
+    }
+    // si ambos son enteros o bool
+    exp->left->accept(this);
+    int lv = lastInt;
+    exp->right->accept(this);
+    int rv = lastInt;
+    switch(exp->op) {
+        case PLUS_OP: lastType=1; lastInt = lv + rv; break;
+        case MINUS_OP: lastType=1; lastInt = lv - rv; break;
+        case MUL_OP: lastType=1; lastInt = lv * rv; break;
+        case DIV_OP: lastType=1; lastInt = lv / rv; break;
+        case LT_OP:  lastType=3; lastInt = (lv < rv); break;
+        case LE_OP:  lastType=3; lastInt = (lv <= rv); break;
+        case EQ_OP:  lastType=3; lastInt = (lv == rv); break;
+    }
+    return lastType;
 }
 
 void EVALVisitor::visit(AssignStatement* stm) {
-    int value = stm->rhs->accept(this);
-    env.update(stm->id, value); // actualizamos el valor de la variable
+    int t = stm->rhs->accept(this);
+    if (t == 2)
+        env.update(stm->id, lastFloat);
+    else
+        env.update(stm->id, lastInt);
 }
 
 void EVALVisitor::visit(PrintStatement* stm) {
-    if(stm->newline){
-        cout << stm->e->accept(this) << endl;
-    } else {
-        cout << stm->e->accept(this) ;
+    int t = stm->e->accept(this);
+    if (t == 2) {
+        cout << fixed << setprecision(1) << lastFloat;
+    } else if (t == 1) {
+        cout << lastInt;
+    } else if (t == 3) {
+        cout << (lastInt ? "true" : "false");
     }
+    if (stm->newline) cout << endl;
 }
 
-
 void EVALVisitor::ejecutar(Program* program){
+    lastType = 1;
+    lastInt = 0;
+    lastFloat = 0.0f;
     program->body->accept(this);
 }
 
-// void EVALVisitor::visit(IfStatement* stm) {
-// }
-
-// void EVALVisitor::visit(WhileStatement* stm) {
-// }
-
-// void EVALVisitor::visit(ForStatement* stm){
-// }
-
-
-
 void EVALVisitor::visit(VarDec* stm){
     if (stm->value) {
-        // Evaluamos el valor de la expresión
-        int value = stm->value->accept(this);
-        env.add_var(stm->id, value, stm->type);
+        int t = stm->value->accept(this);
+        if (t == 2)
+            env.add_var(stm->id, lastFloat, stm->type);
+        else
+            env.add_var(stm->id, lastInt, stm->type);
     } else {
-        env.add_var(stm->id, stm->type);  // Solo declara sin valor
+        env.add_var(stm->id, stm->type);
     }
 }
 
@@ -267,8 +302,10 @@ void EVALVisitor::visit(Body* b){
     env.remove_level(); // quitar el nivel cuando termine de ejecutar el programa
 }
 
-// ///////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
 
+// FALTA TYPECHECKER
 // //0 = undefined
 // //1 = int
 // //2 = bool
@@ -299,7 +336,7 @@ int TypeVisitor::visit(NumberExp* exp) {
     return 1;
 }
 
-float TypeVisitor::visit(DecimalExp* exp) {
+int TypeVisitor::visit(DecimalExp* exp) {
     return 2;
 }
 

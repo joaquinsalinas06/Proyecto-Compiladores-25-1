@@ -1,0 +1,10 @@
+var l : Int = 34;
+var m : Float;
+m = 20.2f;
+
+
+println(l);
+println(m);
+
+println(l + m);
+println(l * m)
