@@ -11,11 +11,12 @@ private:
     bool match(Token::Type ttype);
     bool check(Token::Type ttype);
     bool advance();
-    bool isAtEnd();
+    bool isAtEnd(); 
     Exp* parseCExp();
     Exp* parseExpression();
     Exp* parseTerm();
     Exp* parseFactor();
+    Exp* parseRangeExpression();
 public:
     Parser(Scanner* scanner);
     Program* parseProgram();

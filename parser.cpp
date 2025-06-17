@@ -124,15 +124,13 @@ Body* Parser::parseBody() {
             if (varDec != nullptr) vdl->add(varDec);
             // Si después de la declaración hay un ;, avanzo
             match(Token::PC);
-        }
-        // Si el siguiente token es inicio de sentencia
-        else if (check(Token::ID) || check(Token::PRINT) || check(Token::PRINTLN)) {
+        }        // Si el siguiente token es inicio de sentencia
+        else if (check(Token::ID) || check(Token::PRINT) || check(Token::PRINTLN) || check(Token::IF) || check(Token::WHILE) || check(Token::FOR)) {
             Stm* stm = parseStatement();
             if (stm != nullptr) sl->add(stm);
             match(Token::PC);
-        }
-        // termino
-        else if (check(Token::END)) {
+        }        // termino
+        else if (check(Token::END) || check(Token::LLD)) {
             break;
         }
         // Si el token es ;, avanzo
@@ -180,14 +178,109 @@ Stm* Parser::parseStatement() {
         }
         s = new PrintStatement(e, isPrintln); // true si PRINTLN, false si PRINT
     }
-
-
     // IFSTATEMENT
+    else if (match(Token::IF)) {
+        if (!match(Token::PI)) {
+            cout << "Error: se esperaba '(' después de 'if'" << endl;
+            exit(1);
+        }
+        Exp* condition = parseCExp();
+        if (!match(Token::PD)) {
+            cout << "Error: se esperaba ')' después de la condición del if" << endl;
+            exit(1);
+        }
+        if (!match(Token::LLI)) {
+            cout << "Error: se esperaba '{' después de la condición del if" << endl;
+            exit(1);
+        }
+        Body* thenBody = parseBody();
+        if (!match(Token::LLD)) {
+            cout << "Error: se esperaba '}' después del cuerpo del if" << endl;
+            exit(1);
+        }
+        
+        Body* elseBody = nullptr;
+        if (match(Token::ELSE)) {
+            if (!match(Token::LLI)) {
+                cout << "Error: se esperaba '{' después de 'else'" << endl;
+                exit(1);
+            }
+            elseBody = parseBody();
+            if (!match(Token::LLD)) {
+                cout << "Error: se esperaba '}' después del cuerpo del else" << endl;
+                exit(1);
+            }
+        }
+        s = new IfStatement(condition, thenBody, elseBody);
+    }
     // WHILESTATEMENT
-    // FORSTATEMENT
+    else if (match(Token::WHILE)) {
+        if (!match(Token::PI)) {
+            cout << "Error: se esperaba '(' después de 'while'" << endl;
+            exit(1);
+        }
+        Exp* condition = parseCExp();
+        if (!match(Token::PD)) {
+            cout << "Error: se esperaba ')' después de la condición del while" << endl;
+            exit(1);
+        }
+        if (!match(Token::LLI)) {
+            cout << "Error: se esperaba '{' después de la condición del while" << endl;
+            exit(1);
+        }
+        Body* whileBody = parseBody();
+        if (!match(Token::LLD)) {
+            cout << "Error: se esperaba '}' después del cuerpo del while" << endl;
+            exit(1);
+        }
+        s = new WhileStatement(condition, whileBody);
+    }    // FORSTATEMENT - Kotlin style: for (var id in range) { body }
+    else if (match(Token::FOR)) {
+        if (!match(Token::PI)) {
+            cout << "Error: se esperaba '(' después de 'for'" << endl;
+            exit(1);
+        }
+        
+        string varType = "";
+        string varId = "";
+        
+        if (match(Token::INT)) {
+            varType = "Int";
+        } else if (match(Token::FLOAT)) {
+            varType = "Float";
+        }
+        
+        if (!match(Token::ID)) {
+            cout << "Error: se esperaba identificador en el for" << endl;
+            exit(1);
+        }
+        varId = previous->text;
+        
+        if (!match(Token::IN)) {
+            cout << "Error: se esperaba 'in' después del identificador" << endl;
+            exit(1);
+        }
+        
+        Exp* rangeExp = parseRangeExpression();
+        
+        if (!match(Token::PD)) {
+            cout << "Error: se esperaba ')' después del rango" << endl;
+            exit(1);
+        }
+        if (!match(Token::LLI)) {
+            cout << "Error: se esperaba '{' después del for" << endl;
+            exit(1);
+        }
+        Body* forBody = parseBody();
+        if (!match(Token::LLD)) {
+            cout << "Error: se esperaba '}' después del cuerpo del for" << endl;
+            exit(1);
+        }
+        s = new ForStatement(varId, varType, rangeExp, forBody);
+    }
 
     else {
-        cout << "Error: Se esperaba un identificador o 'print', pero se encontró: " << *current << endl;
+        cout << "Error: Se esperaba un identificador, 'print', 'if', 'while', o 'for', pero se encontró: " << *current << endl;
         exit(1);
     }
     return s;
@@ -243,13 +336,15 @@ Exp* Parser::parseFactor() {
     }else if (match(Token::FALSE)){
         return new BoolExp(0);
     }
-    // Número
     else if (match(Token::NUM)) {
-        return new NumberExp(stoi(previous->text));
+        NumberExp* numExp = new NumberExp(stoi(previous->text));
+        numExp->has_f = previous->has_f;
+        return numExp;
     }
-    // Decimal
     else if (match(Token::DECIMAL)) {
-        return new DecimalExp(stof(previous->text)); 
+        DecimalExp* decExp = new DecimalExp(stof(previous->text));
+        decExp->has_f = previous->has_f;
+        return decExp;
     }
     // ID
     else if (match(Token::ID)) {
@@ -266,4 +361,15 @@ Exp* Parser::parseFactor() {
     }
     cout << "Error: se esperaba un número o identificador." << endl;
     exit(0);
+}
+
+Exp* Parser::parseRangeExpression() {
+    Exp* start = parseCExp();
+    
+    if (match(Token::DOTDOT)) {
+        Exp* end = parseCExp();
+        return new RangeExp(start, end);
+    }
+    
+    return start;
 }

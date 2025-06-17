@@ -66,6 +66,15 @@ public:
     ~IdentifierExp();
 };
 
+class RangeExp : public Exp {
+public:
+    Exp* start;
+    Exp* end;
+    RangeExp(Exp* start, Exp* end);
+    int accept(Visitor* visitor);
+    ~RangeExp();
+};
+
 class Stm {
 public:
     virtual int accept(Visitor* visitor) = 0;
@@ -134,37 +143,35 @@ public:
     Program(Body* body);
     ~Program();
 };
+// If - While - For 
+class IfStatement : public Stm {
+public:
+    Exp* condition;
+    Body* then;
+    Body* els;
+    IfStatement(Exp* condition, Body* then, Body* els);
+    int accept(Visitor* visitor);
+    ~IfStatement();
+};
 
-// // If - While - For 
-// // class IfStatement : public Stm {
-// // public:
-// //     Exp* condition;
-// //     Body* then;
-// //     Body* els;
-// //     IfStatement(Exp* condition, Body* then, Body* els);
-// //     int accept(Visitor* visitor);
-// //     ~IfStatement();
-// // };
+class WhileStatement : public Stm {
+public:
+    Exp* condition;
+    Body* b;
+    WhileStatement(Exp* condition, Body* b);
+    int accept(Visitor* visitor);
+    ~WhileStatement();
+};
 
-
-// // class WhileStatement : public Stm {
-// // public:
-// //     Exp* condition;
-// //     Body* b;
-// //     WhileStatement(Exp* condition, Body* b);
-// //     int accept(Visitor* visitor);
-// //     ~WhileStatement();
-// // };
-
-// //
-// // class ForStatement : public Stm {
-// // public:
-// //     std::string id;
-// //     Exp *start, *limit, *step;
-// //     Body *body;
-// //     ForStatement(const std::string& id, Exp* start, Exp* limit, Exp* step, Body* body);
-// //     int accept(Visitor* visitor) override;
-// //     ~ForStatement();
-// // };
+class ForStatement : public Stm {
+public:
+    std::string id;
+    std::string type;
+    Exp* range;       
+    Body* body;
+    ForStatement(std::string id, std::string type, Exp* range, Body* body);
+    int accept(Visitor* visitor) override;
+    ~ForStatement();
+};
 
 #endif // EXP_H

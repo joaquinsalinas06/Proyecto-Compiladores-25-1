@@ -1,0 +1,10 @@
+var i : Int = 2
+var factorial : Int = 1
+var limit : Int = 5
+
+while (i <= limit) {
+    factorial = factorial * i
+    println(i)
+    println(factorial)
+    i = i + 1
+}

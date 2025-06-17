@@ -1,0 +1,14 @@
+var a : Float = 25.5f
+var b : Float = 30.2f
+var c : Int = 20
+var average : Float
+
+if (a + b <= c * 3) {
+    average = a + b
+    println(average)
+    println(c)
+} else {
+    average = a * b
+    println(average)
+    print(a + b)
+}

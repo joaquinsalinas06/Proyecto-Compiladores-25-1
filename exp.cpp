@@ -40,6 +40,19 @@ PrintStatement::~PrintStatement() {
     delete e;
 }
 
+IfStatement::IfStatement(Exp* condition, Body* then, Body* els): condition(condition), then(then), els(els) {}
+IfStatement::~IfStatement() { }
+
+WhileStatement::WhileStatement(Exp* condition, Body* body) : condition(condition), b(body) {}
+WhileStatement::~WhileStatement() {}
+
+ForStatement::ForStatement(std::string id, std::string type, Exp* range, Body* body) : id(id), type(type), range(range), body(body) {}
+    
+ForStatement::~ForStatement() { delete range; delete body; }
+
+RangeExp::RangeExp(Exp* start, Exp* end): start(start), end(end) {}
+RangeExp::~RangeExp() { delete start; delete end; }
+
 VarDec::VarDec(string id, string t, Exp* val): id(id), type(t), value(val) {}
 VarDec::~VarDec() { delete value; }
 

@@ -5,7 +5,10 @@
 #include <unordered_map>
 using namespace std;
 
-// ///////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////////
+///// Visutors
+/////////////////////////////////////////////////////////////////////////////////////
 int BinaryExp::accept(Visitor* visitor) {
     return visitor->visit(this);
 }
@@ -13,7 +16,6 @@ int BinaryExp::accept(Visitor* visitor) {
 int NumberExp::accept(Visitor* visitor) {
     return visitor->visit(this);
 }
-
 
 int DecimalExp::accept(Visitor* visitor) {
     return visitor->visit(this);
@@ -27,6 +29,10 @@ int IdentifierExp::accept(Visitor* visitor) {
     return visitor->visit(this);
 }
 
+int RangeExp::accept(Visitor* visitor) {
+    return visitor->visit(this);
+}
+
 int AssignStatement::accept(Visitor* visitor) {
     visitor->visit(this);
     return 0;
@@ -37,19 +43,19 @@ int PrintStatement::accept(Visitor* visitor) {
     return 0;
 }
 
-// int IfStatement::accept(Visitor* visitor) {
-//     visitor->visit(this);
-//     return 0;
-// }
+int IfStatement::accept(Visitor* visitor) {
+    visitor->visit(this);
+    return 0;
+}
 
-// int WhileStatement::accept(Visitor* visitor) {
-//     visitor->visit(this);
-//     return 0;
-// }
-// int ForStatement::accept(Visitor* visitor) {
-//     visitor->visit(this);
-//     return 0;
-// }
+int WhileStatement::accept(Visitor* visitor) {
+    visitor->visit(this);
+    return 0;
+}
+int ForStatement::accept(Visitor* visitor) {
+    visitor->visit(this);
+    return 0;
+}
 
 int VarDec::accept(Visitor* visitor) {
     visitor->visit(this);
@@ -69,8 +75,9 @@ int Body::accept(Visitor* visitor) {
     return 0;
 }
 
-// ///////////////////////////////////////////////////////////////////////////////////
-
+/////////////////////////////////////////////////////////////////////////////////////
+///// PrintVisitor
+/////////////////////////////////////////////////////////////////////////////////////
 int PrintVisitor::visit(BinaryExp* exp) {
     exp->left->accept(this);
     cout << ' ' << Exp::binopToChar(exp->op) << ' ';
@@ -86,7 +93,6 @@ int PrintVisitor::visit(NumberExp* exp) {
     return 0; 
 }
 
-
 int PrintVisitor::visit(DecimalExp* exp) {
     cout << fixed << setprecision(1) << exp->value << "f";  // Para flotantes con 'f'
     return 0; 
@@ -99,6 +105,13 @@ int PrintVisitor::visit(BoolExp* exp) {
 
 int PrintVisitor::visit(IdentifierExp* exp) {
     cout << exp->name;
+    return 0;
+}
+
+int PrintVisitor::visit(RangeExp* exp) {
+    exp->start->accept(this);
+    cout << "..";
+    exp->end->accept(this);
     return 0;
 }
 
@@ -135,8 +148,54 @@ void PrintVisitor::imprimirIndentacion() {
 }
 
 // if
-// while
+
+void PrintVisitor::visit(IfStatement* stm) {
+    imprimirIndentacion();
+    cout << "if (";
+    stm->condition->accept(this);
+    cout << ") {" << endl;
+    indent++;
+    stm->then->accept(this);
+    indent--;
+    imprimirIndentacion();
+    cout << "}";
+    if (stm->els != nullptr) {
+        cout << " else {" << endl;
+        indent++;
+        stm->els->accept(this);
+        indent--;
+        imprimirIndentacion();
+        cout << "}";
+    }
+}
+
+void PrintVisitor::visit(WhileStatement* stm) {
+    imprimirIndentacion();
+    cout << "while (";
+    stm->condition->accept(this);
+    cout << ") {" << endl;
+    indent++;
+    stm->b->accept(this);
+    indent--;
+    imprimirIndentacion();
+    cout << "}";
+}
 // for
+void PrintVisitor::visit(ForStatement* stm) {
+    imprimirIndentacion();
+    cout << "for (";
+    if (!stm->type.empty()) {
+        cout << stm->type << " ";
+    }
+    cout << stm->id << " in ";
+    stm->range->accept(this);
+    cout << ") {" << endl;
+    indent++;
+    stm->body->accept(this);
+    indent--;
+    imprimirIndentacion();
+    cout << "}";
+}
 
 void PrintVisitor::visit(VarDec* stm){
     imprimirIndentacion();
@@ -167,8 +226,9 @@ void PrintVisitor::visit(Body* stm){
     stm->slist->accept(this);
 }
 
-////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+///// EVALVisitor
+/////////////////////////////////////////////////////////////////////////////////////
 
 static int evalTypeFromEnv(Environment& env, string name) {
     string strtype = env.lookup_type(name);
@@ -201,6 +261,19 @@ int EVALVisitor::visit(IdentifierExp* exp) {
     else if (t == 3) lastInt = env.lookup(exp->name);
     return t;
 }
+
+int EVALVisitor::visit(RangeExp* exp) {
+    int start_t = exp->start->accept(this);
+    int start_val = lastInt;
+    int end_t = exp->end->accept(this);
+    int end_val = lastInt;
+    
+    lastType = 4;
+    lastInt = start_val;
+    lastFloat = (float)end_val;
+    return lastType;
+}
+
 int EVALVisitor::visit(BinaryExp* exp) {
     int lt = exp->left->accept(this);
     int leftType = lastType;
@@ -260,6 +333,8 @@ void EVALVisitor::visit(PrintStatement* stm) {
         cout << lastInt;
     } else if (t == 3) {
         cout << (lastInt ? "true" : "false");
+    } else if (t == 4) {
+        cout << lastInt << ".." << (int)lastFloat;
     }
     if (stm->newline) cout << endl;
 }
@@ -302,8 +377,47 @@ void EVALVisitor::visit(Body* b){
     env.remove_level(); // quitar el nivel cuando termine de ejecutar el programa
 }
 
-////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////
+void EVALVisitor::visit(IfStatement* stm) {
+    int t = stm->condition->accept(this);
+    bool res = (t == 3) ? (bool)lastInt : (bool)lastInt; 
+    
+    if (res) {
+        stm->then->accept(this);
+    } else if (stm->els != nullptr) {
+        stm->els->accept(this);
+    }
+}
+
+void EVALVisitor::visit(WhileStatement* stm) {
+    while (true) {
+        int t = stm->condition->accept(this);
+        bool res = (t == 3) ? (bool)lastInt : (bool)lastInt;
+        
+        if (!res) break;
+        stm->b->accept(this);
+    }
+}
+
+void EVALVisitor::visit(ForStatement* stm) {
+    if (RangeExp* range = dynamic_cast<RangeExp*>(stm->range)) {
+        int start_t = range->start->accept(this);
+        int start_val = lastInt;
+        int end_t = range->end->accept(this);
+        int end_val = lastInt;
+        
+        env.add_var(stm->id, start_val, stm->type.empty() ? "Int" : stm->type);
+        for (int i = start_val; i <= end_val; i++) {
+            env.update(stm->id, i);
+            stm->body->accept(this);
+        }
+    } else {
+        
+        cout << "Error: Solo se aceptan expresiones por rango" << endl;
+    }
+}
+/////////////////////////////////////////////////////////////////////////////////////
+///// TypeVisitor
+/////////////////////////////////////////////////////////////////////////////////////
 
 // FALTA TYPECHECKER
 // //0 = undefined
@@ -353,6 +467,16 @@ int TypeVisitor::visit(IdentifierExp* exp) {
     return 0;
 }
 
+int TypeVisitor::visit(RangeExp* exp) {
+    // int start_type = exp->start->accept(this);
+    // int end_type = exp->end->accept(this);
+    // if (start_type != 1 || end_type != 1) {
+    //     cout << "Error: Las expresiones tienen que estar dentro de un rango valido" << endl;
+    //     exit(0);
+    // }
+    return 1; // Range returns int type
+}
+
 void TypeVisitor::visit(AssignStatement* stm) {
     // if (!env.check(stm->id)) {
     //     cout << "Variable no declarada: " << stm->id << endl;
@@ -371,14 +495,37 @@ void TypeVisitor::visit(PrintStatement* stm) {
     // cout << stm->e->accept(this);
 }
 
-// void TypeVisitor::visit(IfStatement* stm) {
-// }
+void TypeVisitor::visit(IfStatement* stm) {
+    // int condition_type = stm->condition->accept(this);
+    // if (condition_type != 3) { // 3 = bool
+    //     cout << "Error: La condicion tiene que se booleana" << endl;
+    //     exit(0);
+    // }
+    // stm->then->accept(this);
+    // if (stm->els != nullptr) {
+    //     stm->els->accept(this);
+    // }
+}
 
-// void TypeVisitor::visit(WhileStatement* stm) {
-// }
+void TypeVisitor::visit(WhileStatement* stm) {
+    // int condition_type = stm->condition->accept(this);
+    // if (condition_type != 3) { // 3 = bool
+    //     cout << "Error: La condicion tiene que se booleana" << endl;
+    //     exit(0);
+    // }
+    // stm->b->accept(this);
+}
 
-// void TypeVisitor::visit(ForStatement* stm) {
-// }
+void TypeVisitor::visit(ForStatement* stm) {
+    // int range_type = stm->range->accept(this);
+    // if (range_type != 1) {
+    //     cout << "Error: El rango tiene que usar enteros" << endl;
+    //     exit(0);
+    // }
+    // 
+    // env.add_var(stm->id, stm->type.empty() ? "Int" : stm->type);
+    // stm->body->accept(this);
+}
 
 void TypeVisitor::visit(VarDec* stm) {
     
@@ -402,3 +549,59 @@ void TypeVisitor::visit(Body* b) {
     // b->slist->accept(this);
     // env.remove_level(); // quitar el nivel cuando termine de ejecutar el programa
 }
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+///// CodeGen
+/////////////////////////////////////////////////////////////////////////////////////
+
+int CodeGenVisitor::visit(BinaryExp* exp) {
+    return 0;
+}
+
+int CodeGenVisitor::visit(NumberExp* exp) {
+    return 0;
+}
+
+int CodeGenVisitor::visit(DecimalExp* exp) {
+    return 0;
+}
+
+int CodeGenVisitor::visit(BoolExp* exp) {
+    return 0;
+}
+
+int CodeGenVisitor::visit(IdentifierExp* exp) {
+    return 0;
+}
+
+int CodeGenVisitor::visit(RangeExp* exp) {
+    return 0;
+}
+
+void CodeGenVisitor::visit(AssignStatement* stm) {
+}
+
+void CodeGenVisitor::visit(PrintStatement* stm) {
+}
+
+void CodeGenVisitor::visit(IfStatement* stm) {
+}
+
+void CodeGenVisitor::visit(WhileStatement* stm) {
+}
+
+void CodeGenVisitor::visit(ForStatement* stm) {
+}
+
+void CodeGenVisitor::visit(VarDec* stm) {
+}
+
+void CodeGenVisitor::visit(VarDecList* stm) {
+}
+
+void CodeGenVisitor::visit(StatementList* stm) {
+}
+
+void CodeGenVisitor::visit(Body* b) {
+} 

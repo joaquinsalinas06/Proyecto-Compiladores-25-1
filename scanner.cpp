@@ -26,24 +26,25 @@ Token* Scanner::nextToken() {
 
         // parte entera
         while (current < input.length() && isdigit(input[current]))
-            current++;
-
-        // encuentro el punto seguido de más dígitos, se marca como flotante
+            current++;        
         if (current < input.length() && input[current] == '.') {
-            is_float = true;
-            current++;
-            // dígitos después del . 
-            while (current < input.length() && isdigit(input[current]))
+            if (current + 1 < input.length() && input[current + 1] == '.') {
+                is_int = true;
+            } else {
+                is_float = true;
                 current++;
+                while (current < input.length() && isdigit(input[current]))
+                current++;
+            }
         } else {
             is_int = true;
         }
 
-        // número decimal con "f" al final
         if (is_float && current < input.length() && input[current] == 'f') {
             has_f = true;
             current++;
             token = new Token(Token::DECIMAL, input, first, current - first);
+            token->has_f = has_f;
         } 
 
         else if (is_float) {
@@ -55,6 +56,7 @@ Token* Scanner::nextToken() {
             has_f = true;
             current++;
             token = new Token(Token::NUM, input, first, current - first);
+            token->has_f = has_f;
         }
         else {
             // Si no tiene punto ni 'f', es un número entero
@@ -103,7 +105,7 @@ Token* Scanner::nextToken() {
         }
     }
 
-    else if (strchr(":+-*/()=;,<{}", c)) {
+    else if (strchr(":+-*/()=;,<{}.", c)) {
         switch(c) {
             case '+':
                 if (current + 1 < input.length() && input[current + 1] == '=') {
@@ -163,8 +165,16 @@ Token* Scanner::nextToken() {
                     current++;
                 } else {
                     token = new Token(Token::LT, c);
-                }
-                break;
+                } break;
+                case '.':
+                if (current + 1 < input.length() && input[current + 1] == '.') {
+                
+                    size_t start = current;
+                    current += 2;
+                    return new Token(Token::DOTDOT, input, start, 2);
+                } else {
+                    token = new Token(Token::ERR, c);
+                }           
             case ';': token = new Token(Token::PC, c); break;
             default:
                 cout << "No debería llegar acá" << endl;

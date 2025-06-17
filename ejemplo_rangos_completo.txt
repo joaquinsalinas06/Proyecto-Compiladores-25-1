@@ -1,0 +1,18 @@
+var factorial : Int = 1
+
+println(1..5)
+println(0..3)
+
+for (i in 1..5) {
+    factorial = factorial * i
+    println(i)
+    println(factorial)
+}
+
+var start : Int = 2
+var end : Int = 4
+
+for (x in start..end) {
+    println(x)
+    println(x * 10)
+}
