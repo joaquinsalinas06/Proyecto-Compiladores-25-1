@@ -1,0 +1,12 @@
+var esVerdadero: Boolean = true
+
+println(esVerdadero)
+
+var esFalse : Boolean
+esFalse = ( (true and false) or true )
+
+println(esFalse)
+
+
+println(esFalse == false)
+println(4 < 6) 

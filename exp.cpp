@@ -12,7 +12,8 @@ BinaryExp::BinaryExp(Exp* l, Exp* r, BinaryOp op):left(l),right(r),op(op) {
     // Falta agregar el float (Verificar si el resultado es decimal)
 }
 
-BinaryExp::~BinaryExp() { delete left;
+BinaryExp::~BinaryExp() { 
+    delete left;
     delete right;
 }
 
@@ -32,6 +33,17 @@ BoolExp::~BoolExp() { }
 
 AssignStatement::AssignStatement(string id, Exp* e): id(id), rhs(e) {}
 AssignStatement::~AssignStatement() {
+    delete rhs;
+}
+
+// +=
+PlusAssignStatement::PlusAssignStatement(string id, Exp* e) : id(id), rhs(e) {}
+PlusAssignStatement::~PlusAssignStatement() {
+    delete rhs;
+}
+// -=
+MinusAssignStatement::MinusAssignStatement(string id, Exp* e) : id(id), rhs(e) {}
+MinusAssignStatement::~MinusAssignStatement() {
     delete rhs;
 }
 
@@ -94,6 +106,13 @@ string Exp::binopToChar(BinaryOp op) {
     string  c;
     switch(op) {
         case PLUS_OP: c = "+"; break;
+
+        case PLUSPLUS_OP: c = "++"; break;
+        case MINUSMINUS_OP: c = "--"; break;
+
+        case AND_OP: c = "and"; break;
+        case OR_OP: c = "or"; break;
+        
         case MINUS_OP: c = "-"; break;
         case MUL_OP: c = "*"; break;
         case DIV_OP: c = "/"; break;

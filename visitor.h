@@ -11,6 +11,10 @@ class BoolExp;
 class IdentifierExp;
 class RangeExp;
 class AssignStatement;
+
+class PlusAssignStatement;
+class MinusAssignStatement;
+
 class PrintStatement;
 
 class IfStatement;
@@ -32,6 +36,10 @@ public:
     virtual int visit(IdentifierExp* exp) = 0;
     virtual int visit(RangeExp* exp) = 0;
     virtual void visit(AssignStatement* stm) = 0;
+
+    virtual void visit(PlusAssignStatement* stm) = 0; // PlusAssignStatement
+    virtual void visit(MinusAssignStatement* stm) = 0; // MinusAssignStatement
+
     virtual void visit(PrintStatement* stm) = 0;
 
     virtual void visit(IfStatement* stm) = 0; // IfStatement
@@ -57,6 +65,10 @@ public:
     int visit(IdentifierExp* exp) override;
     int visit(RangeExp* exp) override;
     void visit(AssignStatement* stm) override;
+
+    void visit(PlusAssignStatement* stm) override; // PlusAssignStatement
+    void visit(MinusAssignStatement* stm) override; // MinusAssignStatement
+
     void visit(PrintStatement* stm) override;
     void visit(IfStatement* stm) override; // IfStatement
     void visit(WhileStatement* stm) override; // WhileStatement
@@ -72,6 +84,7 @@ class EVALVisitor : public Visitor {
     int lastType;    // 1=int, 2=float, 3=bool
     int lastInt;     // último valor entero evaluado
     float lastFloat; // último valor float evaluado
+
 public:
     void ejecutar(Program* program);
     int visit(BinaryExp* exp) override;
@@ -81,6 +94,10 @@ public:
     int visit(IdentifierExp* exp) override;
     int visit(RangeExp* exp) override;
     void visit(AssignStatement* stm) override;
+
+    void visit(PlusAssignStatement* stm) override; // PlusAssignStatement}
+    void visit(MinusAssignStatement* stm) override; // MinusAssignStatement
+
     void visit(PrintStatement* stm) override;
     void visit(IfStatement* stm) override; // IfStatement
     void visit(WhileStatement* stm) override; // WhileStatement
@@ -103,6 +120,10 @@ public:
     int visit(IdentifierExp* exp) override;
     int visit(RangeExp* exp) override;
     void visit(AssignStatement* stm) override;
+
+    void visit(PlusAssignStatement* stm) override;
+    void visit(MinusAssignStatement* stm) override;
+
     void visit(PrintStatement* stm) override;
     void visit(IfStatement* stm) override;
     void visit(WhileStatement* stm) override;
@@ -122,6 +143,10 @@ public:
     int visit(IdentifierExp* exp) override;
     int visit(RangeExp* exp) override;
     void visit(AssignStatement* stm) override;
+
+    void visit(PlusAssignStatement* stm) override; // PlusAssignStatement
+    void visit(MinusAssignStatement* stm) override; // MinusAssignStatement
+
     void visit(PrintStatement* stm) override;
     void visit(IfStatement* stm) override; // IfStatement
     void visit(WhileStatement* stm) override; // WhileStatement

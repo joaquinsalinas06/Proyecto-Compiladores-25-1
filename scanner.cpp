@@ -70,12 +70,17 @@ Token* Scanner::nextToken() {
             current++;
         string word = input.substr(first, current - first);
         
-        // asignamos Int o Float
         if (word == "Int") {
             token = new Token(Token::INT, word, 0, word.length());
         } else if (word == "Float") {
             token = new Token(Token::FLOAT, word, 0, word.length());
-        } else if (word == "print") {
+        } 
+        
+        else if (word == "Boolean") {
+            token = new Token(Token::BOOLEAN, word, 0, word.length());
+        } 
+        
+        else if (word == "print") {
             token = new Token(Token::PRINT, word, 0, word.length());
         } else if (word == "println") {
             token = new Token(Token::PRINTLN, word, 0, word.length());
@@ -99,8 +104,11 @@ Token* Scanner::nextToken() {
             token = new Token(Token::TRUE, word, 0, word.length());
         } else if (word == "false") {
             token = new Token(Token::FALSE, word, 0, word.length());
-        }
-        else {
+        } else if (word == "and") {
+            token = new Token(Token::AND, word, 0, word.length());
+        } else if (word == "or") {
+            token = new Token(Token::OR, word, 0, word.length());
+        } else {
             token = new Token(Token::ID, word, 0, word.length());
         }
     }
@@ -111,9 +119,6 @@ Token* Scanner::nextToken() {
                 if (current + 1 < input.length() && input[current + 1] == '=') {
                     token = new Token(Token::PLUS_ASSIGN, "+=", 0, 2);
                     current++;
-                } else if (current + 1 < input.length() && input[current + 1] == '+') {
-                    token = new Token(Token::PLUSPLUS, "++", 0, 2);
-                    current++;
                 } else {
                     token = new Token(Token::PLUS, c);
                 }
@@ -122,28 +127,13 @@ Token* Scanner::nextToken() {
                 if (current + 1 < input.length() && input[current + 1] == '=') {
                     token = new Token(Token::MINUS_ASSIGN, "-=", 0, 2);
                     current++;
-                } else if (current + 1 < input.length() && input[current + 1] == '-') {
-                    token = new Token(Token::MINUSMINUS, "--", 0, 2);
-                    current++;
                 } else {
                     token = new Token(Token::MINUS, c);
                 }
                 break;
-            case '*':
-                if (current + 1 < input.length() && input[current + 1] == '=') {
-                    token = new Token(Token::MUL_ASSIGN, "*=", 0, 2);
-                    current++;
-                } else {
-                    token = new Token(Token::MUL, c);
-                }
+            case '*': token = new Token(Token::MUL, c);
                 break;
-            case '/':   
-                if (current + 1 < input.length() && input[current + 1] == '=') {
-                    token = new Token(Token::DIV_ASSIGN, "/=", 0, 2);
-                    current++;
-                } else {
-                    token = new Token(Token::DIV, c);
-                }
+            case '/': token = new Token(Token::DIV, c);
                 break;
             case ',': token = new Token(Token::COMA, c); break;
             case '(': token = new Token(Token::PI, c); break;

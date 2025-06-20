@@ -1,0 +1,7 @@
+var s : Boolean
+var r : Boolean = false 
+s = true and true
+
+println(r)
+println(s)
+println(4 < 3)

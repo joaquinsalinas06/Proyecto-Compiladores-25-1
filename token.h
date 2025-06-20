@@ -7,16 +7,15 @@ class Token {
 public:
     enum Type {
         VAR, TWO_POINTS, END, // VAR, : y fin de entrada
-        PLUS, MINUS, MUL, DIV, NUM, DECIMAL, ERR, // Operadores, NUM, DECIMAL y errores
-        PLUS_ASSIGN, MINUS_ASSIGN, MUL_ASSIGN, DIV_ASSIGN, // Operadores de asignación
-        PLUSPLUS, MINUSMINUS, // Operadores de incremento y decremento
+        AND, OR, PLUS, MINUS, MUL, DIV, NUM, DECIMAL, ERR, // Operadores, NUM, DECIMAL y errores
+        PLUS_ASSIGN, MINUS_ASSIGN, // Operadores de asignación
         PI, PD, ID, ASSIGN, PC, COMA, LT, LE, EQ, DOTDOT,  // (, ), id, =, ;, , , <, <=, ==, ..
         PRINT, PRINTLN, // println: print con un salto de líneas | print: print sin salto de línea
         IF, LLI, LLD, ELSE_IF, ELSE, // IfStatement
         WHILE, DO, // WhileStatement
         FOR, IN, // in: para rangos en kotlin
         FALSE, TRUE, // booleanos
-        INT, FLOAT // enteros y floats
+        INT, FLOAT, BOOLEAN // enteros, floats y booleanos
     };
 
     Type type;

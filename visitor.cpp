@@ -38,6 +38,17 @@ int AssignStatement::accept(Visitor* visitor) {
     return 0;
 }
 
+// Para la declaración de suma +=
+int PlusAssignStatement::accept(Visitor* visitor) {
+    visitor->visit(this);
+    return 0;
+}
+// Para la declaración de resta -=
+int MinusAssignStatement::accept(Visitor* visitor) {
+    visitor->visit(this);
+    return 0;
+}
+
 int PrintStatement::accept(Visitor* visitor) {
     visitor->visit(this);
     return 0;
@@ -86,15 +97,15 @@ int PrintVisitor::visit(BinaryExp* exp) {
 }
 
 int PrintVisitor::visit(NumberExp* exp) {
-    cout << exp->value;  // Imprime el número entero
-    if (exp->has_f) {     // Si el número tiene 'f' al final, lo imprimimos
+    cout << exp->value;  
+    if (exp->has_f) {    
         cout << "f";
     }
     return 0; 
 }
 
 int PrintVisitor::visit(DecimalExp* exp) {
-    cout << fixed << setprecision(1) << exp->value << "f";  // Para flotantes con 'f'
+    cout << fixed << setprecision(1) << exp->value << "f";  
     return 0; 
 }
 
@@ -118,12 +129,25 @@ int PrintVisitor::visit(RangeExp* exp) {
 void PrintVisitor::visit(AssignStatement* stm) {
     imprimirIndentacion();
     cout << stm->id << " = ";
-    stm->rhs->accept(this); // Imprime la expresión derecha
+    stm->rhs->accept(this);
 }
 
+// Para la declaración de suma +=
+void PrintVisitor::visit(PlusAssignStatement* stm) {
+    imprimirIndentacion();
+    cout << stm->id << " += ";
+    stm->rhs->accept(this);
+}
+
+// Para la declaración de resta -=
+void PrintVisitor::visit(MinusAssignStatement* stm) {
+    imprimirIndentacion();
+    cout << stm->id << " -= ";
+    stm->rhs->accept(this); 
+}
 
 void PrintVisitor::visit(PrintStatement* stm) {
-    imprimirIndentacion();
+    imprimirIndentacion();  
     if(stm->newline==true){
         cout << "println(";
         stm->e->accept(this);
@@ -141,14 +165,13 @@ void PrintVisitor::imprimir(Program* program){
     cout << endl;
 };
 
-// Función auxiliar para imprimir la indentación actual
+// función auxiliar para imprimir la indentación
 void PrintVisitor::imprimirIndentacion() {
     for (int i = 0; i < indent; i++) 
         cout << "    ";
 }
 
 // if
-
 void PrintVisitor::visit(IfStatement* stm) {
     imprimirIndentacion();
     cout << "if (";
@@ -168,7 +191,7 @@ void PrintVisitor::visit(IfStatement* stm) {
         cout << "}";
     }
 }
-
+// while
 void PrintVisitor::visit(WhileStatement* stm) {
     imprimirIndentacion();
     cout << "while (";
@@ -234,7 +257,7 @@ static int evalTypeFromEnv(Environment& env, string name) {
     string strtype = env.lookup_type(name);
     if (strtype == "Int") return 1;
     if (strtype == "Float") return 2;
-    if (strtype == "Bool") return 3;
+    if (strtype == "Boolean") return 3;
     return -1;
 }
 
@@ -248,17 +271,24 @@ int EVALVisitor::visit(DecimalExp* exp) {
     lastFloat = exp->value;
     return lastType;
 }
+
 int EVALVisitor::visit(BoolExp* exp) {
     lastType = 3;
-    lastInt = exp->value;
+    lastInt = exp->value ? 1 : 0;
     return lastType;
 }
+
 int EVALVisitor::visit(IdentifierExp* exp) {
-    int t = evalTypeFromEnv(env, exp->name);
-    lastType = t;
-    if (t == 1) lastInt = env.lookup(exp->name);
-    else if (t == 2) lastFloat = env.lookup_float(exp->name);
-    else if (t == 3) lastInt = env.lookup(exp->name);
+    int t = evalTypeFromEnv(env, exp->name);  // Obtener el tipo de la variable
+    lastType = t;  // Guardamos el tipo de la variable
+
+    if (t == 1) {
+        lastInt = env.lookup(exp->name);  // Recuperamos el valor entero
+    } else if (t == 2) {
+        lastFloat = env.lookup_float(exp->name);  // Recuperamos el valor flotante
+    } else if (t == 3) {
+        lastInt = env.lookup_bool(exp->name) ? 1 : 0;  // Asignamos 1 si es true, 0 si es false
+    }
     return t;
 }
 
@@ -318,22 +348,56 @@ int EVALVisitor::visit(BinaryExp* exp) {
 }
 
 void EVALVisitor::visit(AssignStatement* stm) {
+    int evaluated_type = stm->rhs->accept(this); // Evalúa el valor de la derecha
+    string declared_type = env.lookup_type(stm->id); // Obtiene el tipo declarado de la variable
+
+    if (declared_type == "Int") {
+        env.update(stm->id, (evaluated_type == 2) ? static_cast<int>(lastFloat) : lastInt);
+    } else if (declared_type == "Float") {
+        env.update(stm->id, (evaluated_type == 1) ? static_cast<float>(lastInt) : lastFloat);
+    } else if (declared_type == "Boolean") {
+        env.update(stm->id, (bool)lastInt);
+    } else {
+        cout << "Error: Tipo de variable no soportado o variable no declarada: " << stm->id << endl;
+        exit(1);
+    }
+}
+
+void EVALVisitor::visit(PlusAssignStatement* stm) {
     int t = stm->rhs->accept(this);
-    if (t == 2)
-        env.update(stm->id, lastFloat);
-    else
-        env.update(stm->id, lastInt);
+    if (t == 2) {
+        float currentValue = env.lookup_float(stm->id);
+        env.update(stm->id, currentValue + lastFloat);
+    } else {
+        int currentValue = env.lookup(stm->id);
+        env.update(stm->id, currentValue + lastInt);
+    }
+}
+
+void EVALVisitor::visit(MinusAssignStatement* stm) {
+    int t = stm->rhs->accept(this);
+    if (t == 2) {
+        float currentValue = env.lookup_float(stm->id);
+        env.update(stm->id, currentValue - lastFloat);
+    } else {
+        int currentValue = env.lookup(stm->id);
+        env.update(stm->id, currentValue - lastInt);
+    }
 }
 
 void EVALVisitor::visit(PrintStatement* stm) {
-    int t = stm->e->accept(this);
-    if (t == 2) {
-        cout << fixed << setprecision(1) << lastFloat;
-    } else if (t == 1) {
+    int t = stm->e->accept(this); // Evalúa la expresión
+    if (t == 2) { 
+        if (lastFloat == static_cast<int>(lastFloat)) {
+            cout << static_cast<int>(lastFloat); // Imprime como entero sin decimales
+        } else {
+            cout << fixed << setprecision(1) << lastFloat; // Imprime con decimales
+        }
+    } else if (t == 1) { 
         cout << lastInt;
-    } else if (t == 3) {
+    } else if (t == 3) { 
         cout << (lastInt ? "true" : "false");
-    } else if (t == 4) {
+    } else if (t == 4) { 
         cout << lastInt << ".." << (int)lastFloat;
     }
     if (stm->newline) cout << endl;
@@ -346,13 +410,19 @@ void EVALVisitor::ejecutar(Program* program){
     program->body->accept(this);
 }
 
-void EVALVisitor::visit(VarDec* stm){
+void EVALVisitor::visit(VarDec* stm) {
     if (stm->value) {
-        int t = stm->value->accept(this);
-        if (t == 2)
-            env.add_var(stm->id, lastFloat, stm->type);
-        else
-            env.add_var(stm->id, lastInt, stm->type);
+        int evaluated_type = stm->value->accept(this);
+        string declared_type = stm->type;
+
+        if (declared_type == "Int") {
+            env.add_var(stm->id, (evaluated_type == 2) ? static_cast<int>(lastFloat) : lastInt, declared_type);
+        } else if (declared_type == "Float") {
+            // **Aquí es donde 31 (de NumberExp) se convierte a 31.0f para almacenamiento**
+            env.add_var(stm->id, (evaluated_type == 1) ? static_cast<float>(lastInt) : lastFloat, declared_type);
+        } else if (declared_type == "Boolean") {
+            env.add_var(stm->id, (bool)lastInt, declared_type);
+        }
     } else {
         env.add_var(stm->id, stm->type);
     }
@@ -491,6 +561,35 @@ void TypeVisitor::visit(AssignStatement* stm) {
     // }
 }
 
+// Para la declaración de suma +=
+void TypeVisitor::visit(PlusAssignStatement* stm) {
+    // if (!env.check(stm->id)) {
+    //     cout << "Variable no declarada: " << stm->id << endl;
+    //     exit(0);
+    // }
+
+    // if (env.lookup_type(stm->id) == "int" and stm->rhs->accept(this) == 1) {
+    // } else if (env.lookup_type(stm->id) == "float" and stm->rhs->accept(this) == 2) {
+    // } else if (env.lookup_type(stm->id) == "bool" and stm->rhs->accept(this) == 3) {
+    //     cout << "Error: No coinciden los tipos en la asignacion: " << stm->id << endl;
+    //     exit(0);
+    // }
+}
+
+void TypeVisitor::visit(MinusAssignStatement* stm) {
+    // if (!env.check(stm->id)) {
+    //     cout << "Variable no declarada: " << stm->id << endl;
+    //     exit(0);
+    // }
+
+    // if (env.lookup_type(stm->id) == "int" and stm->rhs->accept(this) == 1) {
+    // } else if (env.lookup_type(stm->id) == "float" and stm->rhs->accept(this) == 2) {
+    // } else if (env.lookup_type(stm->id) == "bool" and stm->rhs->accept(this) == 3) {
+    //     cout << "Error: No coinciden los tipos en la asignacion: " << stm->id << endl;
+    //     exit(0);
+    // }
+}
+
 void TypeVisitor::visit(PrintStatement* stm) {
     // cout << stm->e->accept(this);
 }
@@ -580,6 +679,14 @@ int CodeGenVisitor::visit(RangeExp* exp) {
 }
 
 void CodeGenVisitor::visit(AssignStatement* stm) {
+}
+
+// Para la declaración de suma +=
+void CodeGenVisitor::visit(PlusAssignStatement* stm) {
+}
+
+// Para la declaración de resta -=
+void CodeGenVisitor::visit(MinusAssignStatement* stm) {
 }
 
 void CodeGenVisitor::visit(PrintStatement* stm) {

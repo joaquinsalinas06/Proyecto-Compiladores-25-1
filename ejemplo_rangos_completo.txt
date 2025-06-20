@@ -1,8 +1,5 @@
 var factorial : Int = 1
 
-println(1..5)
-println(0..3)
-
 for (i in 1..5) {
     factorial = factorial * i
     println(i)

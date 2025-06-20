@@ -1,9 +1,9 @@
 var b : Int
 b = 4
-print (b)
+println(b)
 
-b--
-b+=2
-b++
+b+=1
+println(b)
 
-print(b)
+b-= 2
+println(b)

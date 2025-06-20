@@ -63,8 +63,8 @@ VarDec* Parser::parseVarDec() {
         if (match(Token::TWO_POINTS)) {
             if (match(Token::INT)){
                 type = "Int";
-            } else if (match(Token::FALSE) || match(Token::TRUE)) {
-                type = "Bool";
+            } else if (match(Token::BOOLEAN)) {
+                type = "Boolean";
             } else if (match(Token::FLOAT)) {
                 type = "Float";
             } else {
@@ -137,11 +137,7 @@ Body* Parser::parseBody() {
         else if (check(Token::PC)) {
             advance();
         }
-        else {
-            // Si no es ninguno de los anteriores, es un error
-            cout << "Error: token inesperado en el cuerpo del programa: " << *current << endl;
-            exit(1);
-        }
+        else { cout << "Error: token inesperado en el cuerpo del programa: " << *current << endl; exit(1); }
     }
 
     return new Body(vdl, sl);
@@ -160,9 +156,15 @@ Stm* Parser::parseStatement() {
     if (match(Token::ID)) {
         string lex = previous->text;
         if (match(Token::ASSIGN)) {
-            e = parseCExp();
+            e = parseAExp();
             s = new AssignStatement(lex, e);
-        }
+        } else if (match(Token::PLUS_ASSIGN)) {
+            e = parseCExp();
+            s = new PlusAssignStatement(lex, e);
+        } else if (match(Token::MINUS_ASSIGN)) {
+            e = parseCExp();
+            s = new MinusAssignStatement(lex, e);
+        } 
     } else if (check(Token::PRINT) || check(Token::PRINTLN)) {
         bool isPrintln = match(Token::PRINTLN);
         if (!isPrintln) match(Token::PRINT); // Si no era PRINTLN, debe ser PRINT
@@ -178,7 +180,7 @@ Stm* Parser::parseStatement() {
         }
         s = new PrintStatement(e, isPrintln); // true si PRINTLN, false si PRINT
     }
-    // IFSTATEMENT
+    // IFSTATEMENT - Kotlin
     else if (match(Token::IF)) {
         if (!match(Token::PI)) {
             cout << "Error: se esperaba '(' después de 'if'" << endl;
@@ -213,7 +215,7 @@ Stm* Parser::parseStatement() {
         }
         s = new IfStatement(condition, thenBody, elseBody);
     }
-    // WHILESTATEMENT
+    // WHILESTATEMENT - Kotlin
     else if (match(Token::WHILE)) {
         if (!match(Token::PI)) {
             cout << "Error: se esperaba '(' después de 'while'" << endl;
@@ -234,7 +236,7 @@ Stm* Parser::parseStatement() {
             exit(1);
         }
         s = new WhileStatement(condition, whileBody);
-    }    // FORSTATEMENT - Kotlin style: for (var id in range) { body }
+    }    // FORSTATEMENT - Kotlin
     else if (match(Token::FOR)) {
         if (!match(Token::PI)) {
             cout << "Error: se esperaba '(' después de 'for'" << endl;
@@ -248,7 +250,7 @@ Stm* Parser::parseStatement() {
             varType = "Int";
         } else if (match(Token::FLOAT)) {
             varType = "Float";
-        }
+        } 
         
         if (!match(Token::ID)) {
             cout << "Error: se esperaba identificador en el for" << endl;
@@ -286,6 +288,18 @@ Stm* Parser::parseStatement() {
     return s;
 }
 
+Exp* Parser::parseAExp() {
+    Exp* left = parseExpression();
+    while (match(Token::AND) || match(Token::OR)) {
+        BinaryOp op = (previous->type == Token::AND) ? AND_OP : OR_OP; 
+        Exp* right = parseExpression(); 
+        left = new BinaryExp(left, right, op); 
+    }
+    return left; 
+}
+
+
+
 Exp* Parser::parseCExp(){
     Exp* left = parseExpression();
     if (match(Token::LT) || match(Token::LE) || match(Token::EQ)){
@@ -305,6 +319,7 @@ Exp* Parser::parseCExp(){
     return left;
 }
 
+
 Exp* Parser::parseExpression() {
     Exp* left = parseTerm();
     while (match(Token::PLUS) || match(Token::MINUS)) {
@@ -314,7 +329,6 @@ Exp* Parser::parseExpression() {
     }
     return left;
 }
-
 
 Exp* Parser::parseTerm() {
     Exp* left = parseFactor();
@@ -343,7 +357,6 @@ Exp* Parser::parseFactor() {
     }
     else if (match(Token::DECIMAL)) {
         DecimalExp* decExp = new DecimalExp(stof(previous->text));
-        decExp->has_f = previous->has_f;
         return decExp;
     }
     // ID
@@ -352,7 +365,7 @@ Exp* Parser::parseFactor() {
     }
     // (Exp)
     else if (match(Token::PI)){
-        e = parseCExp();
+        e = parseAExp();
         if (!match(Token::PD)){
             cout << "Falta paréntesis derecho" << endl;
             exit(0);

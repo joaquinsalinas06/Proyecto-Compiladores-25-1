@@ -7,7 +7,7 @@
 #include <string>
 #include "visitor.h"
 using namespace std;
-enum BinaryOp { PLUS_OP, MINUS_OP, MUL_OP, DIV_OP, LT_OP, LE_OP, EQ_OP }; // falta el NOT_EQUAL
+enum BinaryOp { AND_OP, OR_OP, PLUS_OP, MINUS_OP, MUL_OP, DIV_OP, LT_OP, LE_OP, EQ_OP, PLUSPLUS_OP, MINUSMINUS_OP }; // falta el NOT_EQUAL
 
 class Body;
 
@@ -90,6 +90,25 @@ public:
     ~AssignStatement();
 };
 
+class PlusAssignStatement : public Stm {
+public:
+    string id;
+    Exp* rhs;
+    int accept(Visitor* visitor);
+    PlusAssignStatement(string id, Exp* e);
+    ~PlusAssignStatement();
+};
+
+class MinusAssignStatement : public Stm {
+public:
+    string id;
+    Exp* rhs;
+    int accept(Visitor* visitor);
+    MinusAssignStatement(string id, Exp* e);
+    ~MinusAssignStatement();
+};
+
+
 class PrintStatement : public Stm {
 public:
     Exp* e;
@@ -102,7 +121,7 @@ public:
 class VarDec {
 public:
     string id;
-    string type; // Int o Float
+    string type; // Int, Float, Bool
     Exp* value; // nullptr si no se inicializa
     VarDec(std::string id, std::string type, Exp* value = nullptr);
     int accept(Visitor* visitor);

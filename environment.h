@@ -8,11 +8,13 @@
 #include <iostream>
 
 using namespace std;
-// Gestiona memoria de variables
+
 class Environment {
 private:
     vector<unordered_map<string, int> > int_levels;
     vector<unordered_map<string, float> > float_levels;
+    vector<unordered_map<string, bool>> bool_levels; 
+
     vector<unordered_map<string, string> > type_levels; // tipo de la variable
 
     int search_rib(string var, string type) {
@@ -32,74 +34,135 @@ private:
                 }
                 idx--;
             }
+        } else if (type == "Boolean") { 
+            int idx = bool_levels.size() - 1;
+            while (idx >= 0) {
+                if (bool_levels[idx].find(var) != bool_levels[idx].end()) {
+                    return idx;
+                }
+                idx--;
+            }
         }
-        return -1; // No se encontró la variable en ningún scope
+        return -1; // Not found
     }
 
 public:
-    Environment() {}
 
-    void add_var(string var, int value, string type) {
+    Environment() { }
+
+    void add_var(string var, int val, string type) {
         if (type == "Int") {
-            int_levels.back()[var] = value;
-            type_levels.back()[var] = "Int";
-        } else if (type == "Float") {
-            float_levels.back()[var] = static_cast<float>(value);
-            type_levels.back()[var] = "Float";
+            int_levels.back()[var] = val;
+        } else {
+            cout << "Error: tipo de variable no coincide al añadir " << var << endl;
         }
+        type_levels.back()[var] = type;
     }
 
-    void add_var(string var, float value, string type) {
+    void add_var(string var, float val, string type) {
         if (type == "Float") {
-            float_levels.back()[var] = value;
-            type_levels.back()[var] = "Float";
+            float_levels.back()[var] = val;
+        } else {
+            cout << "Error: tipo de variable no coincide al añadir " << var << endl;
         }
+        type_levels.back()[var] = type;
     }
 
-    // Declaración sin valor
+    void add_var(string var, bool val, string type) {
+        if (type == "Boolean") {
+            bool_levels.back()[var] = val;
+        } else {
+            cout << "Error: tipo de variable no coincide al añadir " << var << endl;
+        }
+        type_levels.back()[var] = type;
+    }
+
+    // Método para añadir una variable sin valor inicial (se inicializa por defecto)
     void add_var(string var, string type) {
         if (type == "Int") {
             int_levels.back()[var] = 0;
-            type_levels.back()[var] = "Int";
         } else if (type == "Float") {
             float_levels.back()[var] = 0.0f;
-            type_levels.back()[var] = "Float";
+        } else if (type == "Boolean") { // ¡NUEVO! Inicialización por defecto para booleanos
+            bool_levels.back()[var] = false;
         }
+        type_levels.back()[var] = type;
     }
 
-    void update(string var, int value) {
-        int idx = search_rib(var, "Int");
-        if (idx != -1) {
-            int_levels[idx][var] = value;
-        } else {
-            int idf = search_rib(var, "Float");
-            if (idf != -1) {
-                float_levels[idf][var] = static_cast<float>(value);
-            }
-        }
-    }
-    void update(string var, float value) {
-        int idx = search_rib(var, "Float");
-        if (idx != -1) {
-            float_levels[idx][var] = value;
-        }
-    }
+
+    // Métodos lookup (ya los tienes para int y float, aquí completo para bool)
     int lookup(string var) {
-        int idx = search_rib(var, "Int");
-        if (idx != -1) return int_levels[idx][var];
-
-        // Ojo: esto puede retornar truncado
-        int idxf = search_rib(var, "Float");
-        if (idxf != -1) return static_cast<int>(float_levels[idxf][var]);
+        int n = int_levels.size() - 1;
+        while (n >= 0) {
+            if (int_levels[n].find(var) != int_levels[n].end()) {
+                return int_levels[n][var];
+            }
+            n--;
+        }
+        // Considera lanzar una excepción o un valor por defecto si no se encuentra
         return 0;
     }
-    float lookup_float(string var) {
-        int idx = search_rib(var, "Float");
-        if (idx != -1) return float_levels[idx][var];
 
-        int idxi = search_rib(var, "Int");
-        if (idxi != -1) return static_cast<float>(int_levels[idxi][var]);
+    float lookup_float(string var) {
+        int n = float_levels.size() - 1;
+        while (n >= 0) {
+            if (float_levels[n].find(var) != float_levels[n].end()) {
+                return float_levels[n][var];
+            }
+            n--;
+        }
         return 0.0f;
+    }
+
+    // ¡NUEVO! Método para buscar el valor de una variable booleana
+    bool lookup_bool(string var) {
+        int n = bool_levels.size() - 1;
+        while (n >= 0) {
+            if (bool_levels[n].find(var) != bool_levels[n].end()) {
+                return bool_levels[n][var];
+            }
+            n--;
+        }
+        // Si no se encuentra, devolvemos false por defecto (o lanzar excepción)
+        return false;
+    }
+
+    // Métodos update (ya los tienes para int y float, aquí completo para bool)
+    bool update(string var, int val) {
+        int n = int_levels.size() - 1;
+        while (n >= 0) {
+            if (int_levels[n].find(var) != int_levels[n].end()) {
+                int_levels[n][var] = val;
+                return true;
+            }
+            n--;
+        }
+        return false; // Variable no encontrada
+    }
+
+    bool update(string var, float val) {
+        int n = float_levels.size() - 1;
+        while (n >= 0) {
+            if (float_levels[n].find(var) != float_levels[n].end()) {
+                float_levels[n][var] = val;
+                return true;
+            }
+            n--;
+        }
+        return false;
+    }
+
+    // ¡NUEVO! Método para actualizar el valor de una variable booleana
+    bool update(string var, bool val) {
+        int n = bool_levels.size() - 1;
+        while (n >= 0) {
+            if (bool_levels[n].find(var) != bool_levels[n].end()) {
+                bool_levels[n][var] = val;
+                return true;
+            }
+            n--;
+        }
+        return false; // Variable no encontrada
     }
 
     string lookup_type(string var) {
@@ -126,24 +189,20 @@ public:
     void add_level() {
         int_levels.push_back(unordered_map<string, int>());
         float_levels.push_back(unordered_map<string, float>());
+        bool_levels.push_back(unordered_map<string, bool>()); // ¡Asegúrate de que esto esté aquí!
         type_levels.push_back(unordered_map<string, string>());
     }
     void remove_level() {
         int_levels.pop_back();
         float_levels.pop_back();
+        bool_levels.pop_back(); // ¡Asegúrate de que esto esté aquí!
         type_levels.pop_back();
     }
 
     // Verifica el tipo de una variable antes de asignar valor
     bool typecheck(const string& var, const string& expected_type) {
         string actual_type = lookup_type(var);
-        if (actual_type != expected_type) {
-            cerr << "Error de tipo: se esperaba " << expected_type
-                 << " pero se encontró " << actual_type
-                 << " para la variable " << var << endl;
-            return false;
-        }
-        return true;
+        return actual_type == expected_type;
     }
 };
 

@@ -13,6 +13,9 @@ private:
     bool advance();
     bool isAtEnd(); 
     Exp* parseCExp();
+
+    Exp* parseAExp();
+
     Exp* parseExpression();
     Exp* parseTerm();
     Exp* parseFactor();
