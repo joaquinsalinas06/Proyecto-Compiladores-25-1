@@ -8,6 +8,7 @@
 #include "visitor.h"
 using namespace std;
 enum BinaryOp { AND_OP, OR_OP, PLUS_OP, MINUS_OP, MUL_OP, DIV_OP, LT_OP, LE_OP, EQ_OP, PLUSPLUS_OP, MINUSMINUS_OP }; // falta el NOT_EQUAL
+enum UnaryOp { NOT_OP };
 
 class Body;
 
@@ -29,6 +30,15 @@ public:
     BinaryExp(Exp* l, Exp* r, BinaryOp op);
     int accept(Visitor* visitor);
     ~BinaryExp();
+};
+
+class UnaryExp : public Exp {
+public:
+    Exp* e;
+    UnaryOp op;
+    UnaryExp(Exp* e, UnaryOp op);
+    int accept(Visitor* visitor);
+    ~UnaryExp();
 };
 
 // Valor numérico entero dentro de la expresión

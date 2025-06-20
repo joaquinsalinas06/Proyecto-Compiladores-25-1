@@ -5,6 +5,7 @@
 #include <list>
 
 class BinaryExp;
+class UnaryExp;
 class NumberExp;
 class DecimalExp;
 class BoolExp;
@@ -30,6 +31,8 @@ class Program;
 class Visitor {
 public:
     virtual int visit(BinaryExp* exp) = 0;
+    virtual int visit(UnaryExp* exp) = 0;
+
     virtual int visit(NumberExp* exp) = 0;
     virtual int visit(DecimalExp* exp) = 0;
     virtual int visit(BoolExp* exp) = 0;
@@ -58,6 +61,7 @@ private:
 public:
     void imprimir(Program* program);
     int visit(BinaryExp* exp) override;
+    int visit(UnaryExp* exp) override;
     int visit(NumberExp* exp) override;
 
     int visit(DecimalExp* exp) override;
@@ -88,6 +92,7 @@ class EVALVisitor : public Visitor {
 public:
     void ejecutar(Program* program);
     int visit(BinaryExp* exp) override;
+    int visit(UnaryExp* exp) override;
     int visit(NumberExp* exp) override;
     int visit(DecimalExp* exp) override;
     int visit(BoolExp* exp) override;
@@ -113,6 +118,7 @@ class TypeVisitor : public Visitor {
 public:
     void check(Program* program);
     int visit(BinaryExp* exp) override;
+    int visit(UnaryExp* exp) override;
     int visit(NumberExp* exp) override;
   
     int visit(DecimalExp* exp) override;
@@ -137,6 +143,7 @@ public:
 class CodeGenVisitor : public Visitor {
 public:
     int visit(BinaryExp* exp) override;
+    int visit(UnaryExp* exp) override;
     int visit(NumberExp* exp) override;
     int visit(DecimalExp* exp) override;
     int visit(BoolExp* exp) override;

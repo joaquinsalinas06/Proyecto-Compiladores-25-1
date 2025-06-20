@@ -34,6 +34,7 @@ std::ostream& operator << ( std::ostream& outs, const Token & tok )
 
         case Token::AND: outs << "TOKEN(AND)"; break;
         case Token::OR: outs << "TOKEN(OR)"; break;
+        case Token::NOT: outs << "TOKEN(NOT)"; break;
 
         case Token::PI: outs << "TOKEN(PI)"; break;
         case Token::PD: outs << "TOKEN(PD)"; break;

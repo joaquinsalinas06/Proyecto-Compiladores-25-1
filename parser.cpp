@@ -2,7 +2,7 @@
 #include <stdexcept>
 #include "token.h"
 #include "scanner.h"
-#include "exp.h"
+#include "exp.h" // Asegúrate de que UnaryExp y NOT_OP estén definidos aquí
 #include "parser.h"
 
 using namespace std;
@@ -23,7 +23,7 @@ bool Parser::check(Token::Type ttype) {
 bool Parser::advance() {
     if (!isAtEnd()) {
         Token* temp = current;
-        if (previous) delete previous;
+        if (previous) delete previous; // Libera la memoria del token anterior
         current = scanner->nextToken();
         previous = temp;
         if (check(Token::ERR)) {
@@ -58,7 +58,7 @@ VarDec* Parser::parseVarDec() {
             exit(1);
         }
         id = previous->text;
-        
+
         string type;
         if (match(Token::TWO_POINTS)) {
             if (match(Token::INT)){
@@ -72,10 +72,10 @@ VarDec* Parser::parseVarDec() {
                 exit(1);
             }
         }
-        
+
         Exp* val = nullptr;
         if (match(Token::ASSIGN)) {
-            val = parseCExp();
+            val = parseAExp(); // Una asignación puede tener cualquier tipo de expresión, incluyendo lógicas
         }
         vd = new VarDec(id, type, val);
     }
@@ -101,9 +101,9 @@ StatementList* Parser::parseStatementList() {
     Stm* stmt = parseStatement();
     sl->add(stmt);
 
-    while (!isAtEnd() && (check(Token::PC) || check(Token::ID) || check(Token::PRINT) || check(Token::PRINTLN))) {
+    while (!isAtEnd() && (check(Token::PC) || check(Token::ID) || check(Token::PRINT) || check(Token::PRINTLN) || check(Token::IF) || check(Token::WHILE) || check(Token::FOR))) {
         if (match(Token::PC)) {
-            // Si se encuentra un punto y coma, no es necesario generar un error.
+            // Si se encuentra un punto y coma, avanza y continua
             continue;
         }
         stmt = parseStatement();
@@ -152,28 +152,28 @@ Program* Parser::parseProgram() {
 Stm* Parser::parseStatement() {
     Stm* s = NULL;
     Exp* e = NULL;
-    
+
     if (match(Token::ID)) {
         string lex = previous->text;
         if (match(Token::ASSIGN)) {
             e = parseAExp();
             s = new AssignStatement(lex, e);
         } else if (match(Token::PLUS_ASSIGN)) {
-            e = parseCExp();
+            e = parseAExp(); // Asignación con suma también puede ser cualquier expresión
             s = new PlusAssignStatement(lex, e);
         } else if (match(Token::MINUS_ASSIGN)) {
-            e = parseCExp();
+            e = parseAExp(); // Asignación con resta también puede ser cualquier expresión
             s = new MinusAssignStatement(lex, e);
-        } 
+        }
     } else if (check(Token::PRINT) || check(Token::PRINTLN)) {
         bool isPrintln = match(Token::PRINTLN);
         if (!isPrintln) match(Token::PRINT); // Si no era PRINTLN, debe ser PRINT
 
         if (!match(Token::PI)) {
-            cout << "Error: se esperaba un '(' después de 'print'." << endl;
+            cout << "Error: se esperaba un '(' después de 'print/println'." << endl;
             exit(1);
         }
-        e = parseCExp();
+        e = parseAExp(); // print puede ser cualquier expresión, incluyendo lógicas
         if (!match(Token::PD)) {
             cout << "Error: se esperaba un ')' después de la expresión." << endl;
             exit(1);
@@ -186,7 +186,7 @@ Stm* Parser::parseStatement() {
             cout << "Error: se esperaba '(' después de 'if'" << endl;
             exit(1);
         }
-        Exp* condition = parseCExp();
+        Exp* condition = parseAExp(); // La condición de un IF puede ser una expresión lógica
         if (!match(Token::PD)) {
             cout << "Error: se esperaba ')' después de la condición del if" << endl;
             exit(1);
@@ -200,7 +200,7 @@ Stm* Parser::parseStatement() {
             cout << "Error: se esperaba '}' después del cuerpo del if" << endl;
             exit(1);
         }
-        
+
         Body* elseBody = nullptr;
         if (match(Token::ELSE)) {
             if (!match(Token::LLI)) {
@@ -221,7 +221,7 @@ Stm* Parser::parseStatement() {
             cout << "Error: se esperaba '(' después de 'while'" << endl;
             exit(1);
         }
-        Exp* condition = parseCExp();
+        Exp* condition = parseAExp(); // La condición de un WHILE puede ser una expresión lógica
         if (!match(Token::PD)) {
             cout << "Error: se esperaba ')' después de la condición del while" << endl;
             exit(1);
@@ -242,29 +242,30 @@ Stm* Parser::parseStatement() {
             cout << "Error: se esperaba '(' después de 'for'" << endl;
             exit(1);
         }
-        
+
         string varType = "";
         string varId = "";
-        
+
+        // Los tipos INT y FLOAT son opcionales en la declaración de la variable en el for (en Kotlin)
         if (match(Token::INT)) {
             varType = "Int";
         } else if (match(Token::FLOAT)) {
             varType = "Float";
-        } 
-        
+        }
+
         if (!match(Token::ID)) {
             cout << "Error: se esperaba identificador en el for" << endl;
             exit(1);
         }
         varId = previous->text;
-        
+
         if (!match(Token::IN)) {
             cout << "Error: se esperaba 'in' después del identificador" << endl;
             exit(1);
         }
-        
-        Exp* rangeExp = parseRangeExpression();
-        
+
+        Exp* rangeExp = parseRangeExpression(); // Un rango es una expresión
+
         if (!match(Token::PD)) {
             cout << "Error: se esperaba ')' después del rango" << endl;
             exit(1);
@@ -288,21 +289,21 @@ Stm* Parser::parseStatement() {
     return s;
 }
 
+// Operadores lógicos AND y OR
 Exp* Parser::parseAExp() {
-    Exp* left = parseExpression();
+    Exp* left = parseCExp(); // Los operandos de AND/OR son expresiones de comparación
     while (match(Token::AND) || match(Token::OR)) {
-        BinaryOp op = (previous->type == Token::AND) ? AND_OP : OR_OP; 
-        Exp* right = parseExpression(); 
-        left = new BinaryExp(left, right, op); 
+        BinaryOp op = (previous->type == Token::AND) ? AND_OP : OR_OP;
+        Exp* right = parseCExp(); // El lado derecho también debe ser una CExp
+        left = new BinaryExp(left, right, op);
     }
-    return left; 
+    return left;
 }
 
-
-
+// Operadores < <= ==
 Exp* Parser::parseCExp(){
-    Exp* left = parseExpression();
-    if (match(Token::LT) || match(Token::LE) || match(Token::EQ)){
+    Exp* left = parseExpression(); // Los operandos de comparación son expresiones aritméticas
+    if (match(Token::LT) || match(Token::LE) || match(Token::EQ)) {
         BinaryOp op;
         if (previous->type == Token::LT){
             op = LT_OP;
@@ -313,13 +314,13 @@ Exp* Parser::parseCExp(){
         else if (previous->type == Token::EQ){
             op = EQ_OP;
         }
-        Exp* right = parseExpression();
+        Exp* right = parseExpression(); // El lado derecho también es una Expression
         left = new BinaryExp(left, right, op);
     }
     return left;
 }
 
-
+// Operadores + y -
 Exp* Parser::parseExpression() {
     Exp* left = parseTerm();
     while (match(Token::PLUS) || match(Token::MINUS)) {
@@ -330,31 +331,41 @@ Exp* Parser::parseExpression() {
     return left;
 }
 
+// Operadores * y /
 Exp* Parser::parseTerm() {
-    Exp* left = parseFactor();
+    Exp* left = parseUnary(); 
     while (match(Token::MUL) || match(Token::DIV)) {
         BinaryOp op = (previous->type == Token::MUL) ? MUL_OP : DIV_OP;
-        Exp* right = parseFactor();
+        Exp* right = parseUnary();
         left = new BinaryExp(left, right, op);
     }
     return left;
 }
 
+// Operadores unarios: NOT
+Exp* Parser::parseUnary() {
+    if (match(Token::NOT)) {
+        Exp* operand = parseUnary();
+        return new UnaryExp(operand, NOT_OP);
+    }
+    return parseFactor();
+}
+
 Exp* Parser::parseFactor() {
     Exp* e;
-    Exp* e1;
-    Exp* e2;
     // Booleano
     if (match(Token::TRUE)){
         return new BoolExp(1);
     }else if (match(Token::FALSE)){
         return new BoolExp(0);
-    }
+    } 
+    // Numero entero
     else if (match(Token::NUM)) {
         NumberExp* numExp = new NumberExp(stoi(previous->text));
         numExp->has_f = previous->has_f;
         return numExp;
     }
+    // Decimal
     else if (match(Token::DECIMAL)) {
         DecimalExp* decExp = new DecimalExp(stof(previous->text));
         return decExp;
@@ -363,7 +374,7 @@ Exp* Parser::parseFactor() {
     else if (match(Token::ID)) {
         return new IdentifierExp(previous->text);
     }
-    // (Exp)
+    // (Exp) - Las expresiones entre paréntesis tienen la máxima precedencia
     else if (match(Token::PI)){
         e = parseAExp();
         if (!match(Token::PD)){
@@ -372,15 +383,15 @@ Exp* Parser::parseFactor() {
         }
         return e;
     }
-    cout << "Error: se esperaba un número o identificador." << endl;
+    cout << "Error: se esperaba un número, booleano, identificador o '('." << endl;
     exit(0);
 }
 
 Exp* Parser::parseRangeExpression() {
-    Exp* start = parseCExp();
+    Exp* start = parseAExp(); // Un rango puede empezar con cualquier expresión
     
     if (match(Token::DOTDOT)) {
-        Exp* end = parseCExp();
+        Exp* end = parseAExp(); // El final del rango también
         return new RangeExp(start, end);
     }
     

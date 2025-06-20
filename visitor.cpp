@@ -13,6 +13,10 @@ int BinaryExp::accept(Visitor* visitor) {
     return visitor->visit(this);
 }
 
+int UnaryExp::accept(Visitor* visitor) {
+    return visitor->visit(this);
+}
+
 int NumberExp::accept(Visitor* visitor) {
     return visitor->visit(this);
 }
@@ -93,6 +97,12 @@ int PrintVisitor::visit(BinaryExp* exp) {
     exp->left->accept(this);
     cout << ' ' << Exp::binopToChar(exp->op) << ' ';
     exp->right->accept(this);
+    return 0;
+}
+
+int PrintVisitor::visit(UnaryExp* exp) {
+    cout << "!";
+    exp->e->accept(this);
     return 0;
 }
 
@@ -304,46 +314,123 @@ int EVALVisitor::visit(RangeExp* exp) {
     return lastType;
 }
 
+// int EVALVisitor::visit(BinaryExp* exp) {
+//     int lt = exp->left->accept(this);
+//     int leftType = lastType;
+//     int ri = exp->right->accept(this);
+//     int rightType = lastType;
+
+//     // si hay float, convertimos ambos lados a float y operamos en float
+//     if (leftType == 2 || rightType == 2) {
+//         float lv, rv;
+//         // obtener valores float de ambas ramas
+//         exp->left->accept(this);
+//         lv = (lastType == 2) ? lastFloat : (float)lastInt;
+//         exp->right->accept(this);
+//         rv = (lastType == 2) ? lastFloat : (float)lastInt;
+//         lastType = 2;
+//         switch(exp->op) {
+//             case PLUS_OP: lastFloat = lv + rv; break;
+//             case MINUS_OP: lastFloat = lv - rv; break;
+//             case MUL_OP: lastFloat = lv * rv; break;
+//             case DIV_OP: lastFloat = lv / rv; break;
+//             case LT_OP:   lastType=3; lastInt=(lv < rv); break;
+//             case LE_OP:   lastType=3; lastInt=(lv <= rv); break;
+//             case EQ_OP:   lastType=3; lastInt=(lv == rv); break;
+//             case AND_OP:   // Evaluar AND lógico
+//                 lastType = 3;
+//                 lastInt = (lv != 0 && rv != 0) ? 1 : 0;
+//                 break;
+//             case OR_OP:    // Evaluar OR lógico
+//                 lastType = 3;
+//                 lastInt = (lv != 0 || rv != 0) ? 1 : 0;
+//                 break;
+//         }
+//         return lastType;
+//     }
+//     // si ambos son enteros o bool
+//     exp->left->accept(this);
+//     int lv = lastInt;
+//     exp->right->accept(this);
+//     int rv = lastInt;
+//     switch(exp->op) {
+//         case PLUS_OP: lastType=1; lastInt = lv + rv; break;
+//         case MINUS_OP: lastType=1; lastInt = lv - rv; break;
+//         case MUL_OP: lastType=1; lastInt = lv * rv; break;
+//         case DIV_OP: lastType=1; lastInt = lv / rv; break;
+//         case LT_OP:  lastType=3; lastInt = (lv < rv); break;
+//         case LE_OP:  lastType=3; lastInt = (lv <= rv); break;
+//         case EQ_OP:  lastType=3; lastInt = (lv == rv); break;
+//     }
+//     return lastType;
+// }
+
+
 int EVALVisitor::visit(BinaryExp* exp) {
     int lt = exp->left->accept(this);
     int leftType = lastType;
     int ri = exp->right->accept(this);
     int rightType = lastType;
 
-    // si hay float, convertimos ambos lados a float y operamos en float
+    // Si hay un float, convertimos ambos lados a float y operamos en float
     if (leftType == 2 || rightType == 2) {
         float lv, rv;
-        // obtener valores float de ambas ramas
-        exp->left->accept(this);
+        // Obtener valores float de ambas ramas
+        exp->left->accept(this); // Re-evaluar para obtener el valor float
         lv = (lastType == 2) ? lastFloat : (float)lastInt;
-        exp->right->accept(this);
+        exp->right->accept(this); // Re-evaluar para obtener el valor float
         rv = (lastType == 2) ? lastFloat : (float)lastInt;
-        lastType = 2;
+        lastType = 2; // Por defecto, el resultado de una operación numérica mixta es float
+
         switch(exp->op) {
-            case PLUS_OP: lastFloat = lv + rv; break;
+            case PLUS_OP:  lastFloat = lv + rv; break;
             case MINUS_OP: lastFloat = lv - rv; break;
-            case MUL_OP: lastFloat = lv * rv; break;
-            case DIV_OP: lastFloat = lv / rv; break;
-            case LT_OP:   lastType=3; lastInt=(lv < rv); break;
-            case LE_OP:   lastType=3; lastInt=(lv <= rv); break;
-            case EQ_OP:   lastType=3; lastInt=(lv == rv); break;
+            case MUL_OP:   lastFloat = lv * rv; break;
+            case DIV_OP:   lastFloat = lv / rv; break;
+            case LT_OP:    lastType = 3; lastInt = (lv < rv); break;    // Resultado booleano
+            case LE_OP:    lastType = 3; lastInt = (lv <= rv); break;   // Resultado booleano
+            case EQ_OP:    lastType = 3; lastInt = (lv == rv); break;   // Resultado booleano
+            case AND_OP:   // Evaluar AND lógico para flotantes
+                lastType = 3; // El resultado es booleano
+                lastInt = (lv != 0.0f && rv != 0.0f) ? 1 : 0;
+                break;
+            case OR_OP:    // Evaluar OR lógico para flotantes
+                lastType = 3; // El resultado es booleano
+                lastInt = (lv != 0.0f || rv != 0.0f) ? 1 : 0;
+                break;
         }
         return lastType;
     }
-    // si ambos son enteros o bool
-    exp->left->accept(this);
+    // Si ambos son enteros o booleanos
+    exp->left->accept(this); // Obtener el valor int
     int lv = lastInt;
-    exp->right->accept(this);
+    exp->right->accept(this); // Obtener el valor int
     int rv = lastInt;
+
     switch(exp->op) {
-        case PLUS_OP: lastType=1; lastInt = lv + rv; break;
-        case MINUS_OP: lastType=1; lastInt = lv - rv; break;
-        case MUL_OP: lastType=1; lastInt = lv * rv; break;
-        case DIV_OP: lastType=1; lastInt = lv / rv; break;
-        case LT_OP:  lastType=3; lastInt = (lv < rv); break;
-        case LE_OP:  lastType=3; lastInt = (lv <= rv); break;
-        case EQ_OP:  lastType=3; lastInt = (lv == rv); break;
+        case PLUS_OP:  lastType = 1; lastInt = lv + rv; break;
+        case MINUS_OP: lastType = 1; lastInt = lv - rv; break;
+        case MUL_OP:   lastType = 1; lastInt = lv * rv; break;
+        case DIV_OP:   lastType = 1; lastInt = lv / rv; break;
+        case LT_OP:    lastType = 3; lastInt = (lv < rv); break;    // Resultado booleano
+        case LE_OP:    lastType = 3; lastInt = (lv <= rv); break;   // Resultado booleano
+        case EQ_OP:    lastType = 3; lastInt = (lv == rv); break;   // Resultado booleano
+        case AND_OP:   // Evaluar AND lógico para enteros/booleanos
+            lastType = 3; // El resultado es booleano
+            lastInt = (lv != 0 && rv != 0) ? 1 : 0;
+            break;
+        case OR_OP:    // Evaluar OR lógico para enteros/booleanos
+            lastType = 3; // El resultado es booleano
+            lastInt = (lv != 0 || rv != 0) ? 1 : 0;
+            break;
     }
+    return lastType;
+}
+
+int EVALVisitor::visit(UnaryExp* exp) {
+    exp->e->accept(this);
+    lastType = 3;
+    lastInt = !lastInt;
     return lastType;
 }
 
@@ -516,6 +603,10 @@ int TypeVisitor::visit(BinaryExp* exp) {
     return 0;
 }
 
+int TypeVisitor::visit(UnaryExp* exp) {
+    return 3;  // Tipo booleano
+}
+
 int TypeVisitor::visit(NumberExp* exp) {
     return 1;
 }
@@ -655,6 +746,10 @@ void TypeVisitor::visit(Body* b) {
 /////////////////////////////////////////////////////////////////////////////////////
 
 int CodeGenVisitor::visit(BinaryExp* exp) {
+    return 0;
+}
+
+int CodeGenVisitor::visit(UnaryExp* exp) {
     return 0;
 }
 

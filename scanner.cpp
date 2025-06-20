@@ -74,13 +74,9 @@ Token* Scanner::nextToken() {
             token = new Token(Token::INT, word, 0, word.length());
         } else if (word == "Float") {
             token = new Token(Token::FLOAT, word, 0, word.length());
-        } 
-        
-        else if (word == "Boolean") {
+        } else if (word == "Boolean") {
             token = new Token(Token::BOOLEAN, word, 0, word.length());
-        } 
-        
-        else if (word == "print") {
+        } else if (word == "print") {
             token = new Token(Token::PRINT, word, 0, word.length());
         } else if (word == "println") {
             token = new Token(Token::PRINTLN, word, 0, word.length());
@@ -113,7 +109,7 @@ Token* Scanner::nextToken() {
         }
     }
 
-    else if (strchr(":+-*/()=;,<{}.", c)) {
+    else if (strchr(":+-*/()=;,<{}.!", c)) {
         switch(c) {
             case '+':
                 if (current + 1 < input.length() && input[current + 1] == '=') {
@@ -141,6 +137,7 @@ Token* Scanner::nextToken() {
             case '{': token = new Token(Token::LLI, c); break;
             case '}': token = new Token(Token::LLD, c); break;
             case ':': token = new Token(Token::TWO_POINTS, c); break;
+            case '!': token = new Token(Token::NOT, c); break;
             case '=':
                 if (current + 1 < input.length() && input[current + 1] == '=') {
                     token = new Token(Token::EQ, "==", 0, 2);

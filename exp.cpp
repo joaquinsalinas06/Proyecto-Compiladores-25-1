@@ -17,6 +17,11 @@ BinaryExp::~BinaryExp() {
     delete right;
 }
 
+UnaryExp::UnaryExp(Exp* e, UnaryOp op): e(e), op(op) {}
+UnaryExp::~UnaryExp() { 
+    delete e; 
+}
+
 NumberExp::NumberExp(int v):value(v) {}
 NumberExp::~NumberExp() { }
 

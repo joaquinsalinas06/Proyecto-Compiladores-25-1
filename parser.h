@@ -15,6 +15,7 @@ private:
     Exp* parseCExp();
 
     Exp* parseAExp();
+    Exp* parseUnary();
 
     Exp* parseExpression();
     Exp* parseTerm();
