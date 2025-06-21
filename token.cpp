@@ -53,6 +53,7 @@ std::ostream& operator << ( std::ostream& outs, const Token & tok )
         case Token::LT: outs << "TOKEN(LT)"; break;
         case Token::LE: outs << "TOKEN(LE)"; break;
         case Token::EQ: outs << "TOKEN(EQ)"; break;
+        case Token::NOT_EQ: outs << "TOKEN(NOT_EQ)"; break;
         case Token::DOTDOT: outs << "TOKEN(DOTDOT)"; break;
 
         case Token::IF: outs << "TOKEN(IF)"; break;

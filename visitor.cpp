@@ -390,6 +390,7 @@ int EVALVisitor::visit(BinaryExp* exp) {
             case LT_OP:    lastType = 3; lastInt = (lv < rv); break;    // Resultado booleano
             case LE_OP:    lastType = 3; lastInt = (lv <= rv); break;   // Resultado booleano
             case EQ_OP:    lastType = 3; lastInt = (lv == rv); break;   // Resultado booleano
+            case NOT_EQ_OP: lastType = 3; lastInt = (lv != rv); break;  // Resultado booleano
             case AND_OP:   // Evaluar AND lógico para flotantes
                 lastType = 3; // El resultado es booleano
                 lastInt = (lv != 0.0f && rv != 0.0f) ? 1 : 0;
@@ -415,6 +416,7 @@ int EVALVisitor::visit(BinaryExp* exp) {
         case LT_OP:    lastType = 3; lastInt = (lv < rv); break;    // Resultado booleano
         case LE_OP:    lastType = 3; lastInt = (lv <= rv); break;   // Resultado booleano
         case EQ_OP:    lastType = 3; lastInt = (lv == rv); break;   // Resultado booleano
+        case NOT_EQ_OP: lastType = 3; lastInt = (lv != rv); break;  // Resultado booleano
         case AND_OP:   // Evaluar AND lógico para enteros/booleanos
             lastType = 3; // El resultado es booleano
             lastInt = (lv != 0 && rv != 0) ? 1 : 0;

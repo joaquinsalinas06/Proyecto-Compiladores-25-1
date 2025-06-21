@@ -111,6 +111,7 @@ string Exp::binopToChar(BinaryOp op) {
     string  c;
     switch(op) {
         case PLUS_OP: c = "+"; break;
+        case MINUS_OP: c = "-"; break;
 
         case PLUSPLUS_OP: c = "++"; break;
         case MINUSMINUS_OP: c = "--"; break;
@@ -118,12 +119,13 @@ string Exp::binopToChar(BinaryOp op) {
         case AND_OP: c = "and"; break;
         case OR_OP: c = "or"; break;
         
-        case MINUS_OP: c = "-"; break;
         case MUL_OP: c = "*"; break;
         case DIV_OP: c = "/"; break;
+        
         case LT_OP: c = "<"; break;
         case LE_OP: c = "<="; break;
         case EQ_OP: c = "=="; break;
+        case NOT_EQ_OP: c ="!="; break;
         default: c = "$";
     }
     return c;

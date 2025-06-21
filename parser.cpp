@@ -303,7 +303,7 @@ Exp* Parser::parseAExp() {
 // Operadores < <= ==
 Exp* Parser::parseCExp(){
     Exp* left = parseExpression(); // Los operandos de comparación son expresiones aritméticas
-    if (match(Token::LT) || match(Token::LE) || match(Token::EQ)) {
+    if (match(Token::LT) || match(Token::LE) || match(Token::EQ) || match(Token::NOT_EQ)) {
         BinaryOp op;
         if (previous->type == Token::LT){
             op = LT_OP;
@@ -313,6 +313,9 @@ Exp* Parser::parseCExp(){
         }
         else if (previous->type == Token::EQ){
             op = EQ_OP;
+        }
+        else if (previous->type == Token::NOT_EQ){
+            op = NOT_EQ_OP;
         }
         Exp* right = parseExpression(); // El lado derecho también es una Expression
         left = new BinaryExp(left, right, op);
