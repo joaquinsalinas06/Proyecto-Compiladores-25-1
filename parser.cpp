@@ -300,16 +300,22 @@ Exp* Parser::parseAExp() {
     return left;
 }
 
-// Operadores < <= ==
+// Operadores < <= > >= ==
 Exp* Parser::parseCExp(){
     Exp* left = parseExpression(); // Los operandos de comparación son expresiones aritméticas
-    if (match(Token::LT) || match(Token::LE) || match(Token::EQ) || match(Token::NOT_EQ)) {
+    if (match(Token::LT) || match(Token::LE) || match(Token::GT) || match(Token::GE) || match(Token::EQ) || match(Token::NOT_EQ)) {
         BinaryOp op;
         if (previous->type == Token::LT){
             op = LT_OP;
         }
         else if (previous->type == Token::LE){
             op = LE_OP;
+        }
+        else if (previous->type == Token::GT){
+            op = GT_OP;
+        }
+        else if (previous->type == Token::GE){
+            op = GE_OP;
         }
         else if (previous->type == Token::EQ){
             op = EQ_OP;

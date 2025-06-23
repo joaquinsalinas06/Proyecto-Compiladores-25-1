@@ -121,9 +121,10 @@ string Exp::binopToChar(BinaryOp op) {
         
         case MUL_OP: c = "*"; break;
         case DIV_OP: c = "/"; break;
-        
         case LT_OP: c = "<"; break;
         case LE_OP: c = "<="; break;
+        case GT_OP: c = ">"; break;
+        case GE_OP: c = ">="; break;
         case EQ_OP: c = "=="; break;
         case NOT_EQ_OP: c ="!="; break;
         default: c = "$";

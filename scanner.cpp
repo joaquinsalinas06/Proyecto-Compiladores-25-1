@@ -109,7 +109,7 @@ Token* Scanner::nextToken() {
         }
     }
 
-    else if (strchr(":+-*/()=;,<{}.!", c)) {
+    else if (strchr(":+-*/()=;,<>{}.!", c)) {
         switch(c) {
             case '+':
                 if (current + 1 < input.length() && input[current + 1] == '=') {
@@ -152,7 +152,7 @@ Token* Scanner::nextToken() {
                 } else {
                     token = new Token(Token::ASSIGN, c);
                 }
-                break;
+                break;            
             case '<':
                 if (current + 1 < input.length() && input[current + 1] == '=') {
                     token = new Token(Token::LE, "<=", 0, 2);
@@ -160,7 +160,13 @@ Token* Scanner::nextToken() {
                 } else {
                     token = new Token(Token::LT, c);
                 } break;
-                case '.':
+            case '>':
+                if (current + 1 < input.length() && input[current + 1] == '=') {
+                    token = new Token(Token::GE, ">=", 0, 2);
+                    current++;
+                } else {
+                    token = new Token(Token::GT, c);
+                } break;                case '.':
                 if (current + 1 < input.length() && input[current + 1] == '.') {
                 
                     size_t start = current;
@@ -168,7 +174,8 @@ Token* Scanner::nextToken() {
                     return new Token(Token::DOTDOT, input, start, 2);
                 } else {
                     token = new Token(Token::ERR, c);
-                }           
+                }
+                break;
             case ';': token = new Token(Token::PC, c); break;
             default:
                 cout << "No debería llegar acá" << endl;

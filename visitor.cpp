@@ -377,7 +377,7 @@ int EVALVisitor::visit(BinaryExp* exp) {
         float lv, rv;
         // Obtener valores float de ambas ramas
         exp->left->accept(this); // Re-evaluar para obtener el valor float
-        lv = (lastType == 2) ? lastFloat : (float)lastInt;
+        lv = (lastType == 2) ? lastFloat : (float)lastInt;        
         exp->right->accept(this); // Re-evaluar para obtener el valor float
         rv = (lastType == 2) ? lastFloat : (float)lastInt;
         lastType = 2; // Por defecto, el resultado de una operación numérica mixta es float
@@ -389,6 +389,8 @@ int EVALVisitor::visit(BinaryExp* exp) {
             case DIV_OP:   lastFloat = lv / rv; break;
             case LT_OP:    lastType = 3; lastInt = (lv < rv); break;    // Resultado booleano
             case LE_OP:    lastType = 3; lastInt = (lv <= rv); break;   // Resultado booleano
+            case GT_OP:    lastType = 3; lastInt = (lv > rv); break;    // Resultado booleano
+            case GE_OP:    lastType = 3; lastInt = (lv >= rv); break;   // Resultado booleano
             case EQ_OP:    lastType = 3; lastInt = (lv == rv); break;   // Resultado booleano
             case NOT_EQ_OP: lastType = 3; lastInt = (lv != rv); break;  // Resultado booleano
             case AND_OP:   // Evaluar AND lógico para flotantes
@@ -402,7 +404,6 @@ int EVALVisitor::visit(BinaryExp* exp) {
         }
         return lastType;
     }
-    // Si ambos son enteros o booleanos
     exp->left->accept(this); // Obtener el valor int
     int lv = lastInt;
     exp->right->accept(this); // Obtener el valor int
@@ -415,6 +416,8 @@ int EVALVisitor::visit(BinaryExp* exp) {
         case DIV_OP:   lastType = 1; lastInt = lv / rv; break;
         case LT_OP:    lastType = 3; lastInt = (lv < rv); break;    // Resultado booleano
         case LE_OP:    lastType = 3; lastInt = (lv <= rv); break;   // Resultado booleano
+        case GT_OP:    lastType = 3; lastInt = (lv > rv); break;    // Resultado booleano
+        case GE_OP:    lastType = 3; lastInt = (lv >= rv); break;   // Resultado booleano
         case EQ_OP:    lastType = 3; lastInt = (lv == rv); break;   // Resultado booleano
         case NOT_EQ_OP: lastType = 3; lastInt = (lv != rv); break;  // Resultado booleano
         case AND_OP:   // Evaluar AND lógico para enteros/booleanos
