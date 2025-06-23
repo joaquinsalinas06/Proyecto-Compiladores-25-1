@@ -201,19 +201,46 @@ Stm* Parser::parseStatement() {
             exit(1);
         }
 
-        Body* elseBody = nullptr;
-        if (match(Token::ELSE)) {
-            if (!match(Token::LLI)) {
-                cout << "Error: se esperaba '{' después de 'else'" << endl;
-                exit(1);
-            }
-            elseBody = parseBody();
-            if (!match(Token::LLD)) {
-                cout << "Error: se esperaba '}' después del cuerpo del else" << endl;
-                exit(1);
+        IfStatement* ifStmt = new IfStatement(condition, thenBody);
+        
+        while (match(Token::ELSE)) {
+            if (check(Token::IF)) {
+                advance();
+                if (!match(Token::PI)) {
+                    cout << "Error: se esperaba '(' después de 'if'" << endl;
+                    exit(1);
+                }
+                Exp* elseIfCondition = parseAExp();
+                if (!match(Token::PD)) {
+                    cout << "Error: se esperaba ')' después de la condición del else if" << endl;
+                    exit(1);
+                }
+                if (!match(Token::LLI)) {
+                    cout << "Error: se esperaba '{' después de la condición del else if" << endl;
+                    exit(1);
+                }
+                Body* elseIfBody = parseBody();
+                if (!match(Token::LLD)) {
+                    cout << "Error: se esperaba '}' después del cuerpo del else if" << endl;
+                    exit(1);
+                }
+                ifStmt->addElseIf(elseIfCondition, elseIfBody);
+            } else {
+                if (!match(Token::LLI)) {
+                    cout << "Error: se esperaba '{' después de 'else'" << endl;
+                    exit(1);
+                }
+                Body* elseBody = parseBody();
+                if (!match(Token::LLD)) {
+                    cout << "Error: se esperaba '}' después del cuerpo del else" << endl;
+                    exit(1);
+                }
+                ifStmt->setElse(elseBody);
+                break;
             }
         }
-        s = new IfStatement(condition, thenBody, elseBody);
+        
+        s = ifStmt;
     }
     // WHILESTATEMENT - Kotlin
     else if (match(Token::WHILE)) {

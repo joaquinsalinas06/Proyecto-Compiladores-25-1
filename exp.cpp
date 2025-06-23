@@ -57,8 +57,25 @@ PrintStatement::~PrintStatement() {
     delete e;
 }
 
-IfStatement::IfStatement(Exp* condition, Body* then, Body* els): condition(condition), then(then), els(els) {}
-IfStatement::~IfStatement() { }
+IfStatement::IfStatement(Exp* condition, Body* then): condition(condition), then(then), els(nullptr) {}
+
+void IfStatement::addElseIf(Exp* condition, Body* body) {
+    elseifs.push_back(std::make_pair(condition, body));
+}
+
+void IfStatement::setElse(Body* body) {
+    els = body;
+}
+
+IfStatement::~IfStatement() { 
+    delete condition;
+    delete then;
+    for (auto& elseif : elseifs) {
+        delete elseif.first;
+        delete elseif.second;
+    }
+    delete els;
+}
 
 WhileStatement::WhileStatement(Exp* condition, Body* body) : condition(condition), b(body) {}
 WhileStatement::~WhileStatement() {}

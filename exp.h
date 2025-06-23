@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <list>
+#include <vector>
 #include <string>
 #include "visitor.h"
 using namespace std;
@@ -177,8 +178,11 @@ class IfStatement : public Stm {
 public:
     Exp* condition;
     Body* then;
+    std::vector<std::pair<Exp*, Body*>> elseifs; //Condicion + Que hacer si se cumple dicha condicion
     Body* els;
-    IfStatement(Exp* condition, Body* then, Body* els);
+    IfStatement(Exp* condition, Body* then);
+    void addElseIf(Exp* condition, Body* body);
+    void setElse(Body* body);
     int accept(Visitor* visitor);
     ~IfStatement();
 };

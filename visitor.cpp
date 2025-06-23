@@ -192,6 +192,18 @@ void PrintVisitor::visit(IfStatement* stm) {
     indent--;
     imprimirIndentacion();
     cout << "}";
+    
+    for (const auto& elseif : stm->elseifs) {
+        cout << " else if (";
+        elseif.first->accept(this);
+        cout << ") {" << endl;
+        indent++;
+        elseif.second->accept(this);
+        indent--;
+        imprimirIndentacion();
+        cout << "}";
+    }
+    
     if (stm->els != nullptr) {
         cout << " else {" << endl;
         indent++;
@@ -545,7 +557,19 @@ void EVALVisitor::visit(IfStatement* stm) {
     
     if (res) {
         stm->then->accept(this);
-    } else if (stm->els != nullptr) {
+        return;
+    }
+    
+    for (const auto& elseif : stm->elseifs) {
+        int t2 = elseif.first->accept(this);
+        bool res2 = (t2 == 3) ? (bool)lastInt : (bool)lastInt;
+        if (res2) {
+            elseif.second->accept(this);
+            return;
+        }
+    }
+    
+    if (stm->els != nullptr) {
         stm->els->accept(this);
     }
 }
