@@ -1,0 +1,14 @@
+var x : Int = 15
+var y : Int = 10
+var result : Int
+
+fun main(): Int {
+    if (x > y) {
+        result = x + y
+        println(result)
+    } else {
+        result = x - y
+        println(result)
+    }
+    return 0
+}

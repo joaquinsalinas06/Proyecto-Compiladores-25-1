@@ -1,6 +1,0 @@
-var a : Float = 31f;
-var c : Float = 31.1f;
-
-println(a)
-println(c)
-println(a+c)

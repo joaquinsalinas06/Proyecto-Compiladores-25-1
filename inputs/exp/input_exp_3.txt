@@ -1,0 +1,11 @@
+var x : Int = 7
+var y : Int = 2
+var z : Int = 3
+
+fun main(): Int {
+    println(x + y - z)
+    println(x * (y + z))
+    println((x - y) * z)
+    println(x / y + z)
+    return 0
+}

@@ -46,12 +46,12 @@ std::ostream& operator << ( std::ostream& outs, const Token & tok )
 
         case Token::PC: outs << "TOKEN(PC)"; break;
         case Token::COMA: outs << "TOKEN(COMA)"; break;
-        case Token::TWO_POINTS: outs << "TOKEN(TWO_POINTS)"; break;
-
-
+        case Token::TWO_POINTS: outs << "TOKEN(TWO_POINTS)"; break;        
         case Token::ID: outs << "TOKEN(ID)"; break;
         case Token::LT: outs << "TOKEN(LT)"; break;
         case Token::LE: outs << "TOKEN(LE)"; break;
+        case Token::GT: outs << "TOKEN(GT)"; break;
+        case Token::GE: outs << "TOKEN(GE)"; break;
         case Token::EQ: outs << "TOKEN(EQ)"; break;
         case Token::NOT_EQ: outs << "TOKEN(NOT_EQ)"; break;
         case Token::DOTDOT: outs << "TOKEN(DOTDOT)"; break;
@@ -72,6 +72,9 @@ std::ostream& operator << ( std::ostream& outs, const Token & tok )
         case Token::INT: outs << "TOKEN(INT)"; break;
         case Token::FLOAT: outs << "TOKEN(FLOAT)"; break;
         case Token::BOOLEAN: outs << "TOKEN(BOOLEAN)"; break;
+
+        case Token::FUN: outs << "TOKEN(FUN)"; break;
+        case Token::RETURN: outs << "TOKEN(RETURN)"; break;
 
         default: outs << "TOKEN(UNKNOWN)"; break;
     }

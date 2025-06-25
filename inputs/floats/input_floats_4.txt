@@ -1,0 +1,9 @@
+var a : Float = 15.7f
+var b : Float = 8.2f
+
+fun main(): Int {
+    println(a * b)
+    println(a / b)
+    println(a - b)
+    return 0
+}

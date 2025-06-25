@@ -1,9 +1,0 @@
-var b : Int
-b = 4
-println(b)
-
-b+=1
-println(b)
-
-b-= 2
-println(b)

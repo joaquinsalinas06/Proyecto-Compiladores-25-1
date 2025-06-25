@@ -4,10 +4,11 @@
 #include <string>
 #include <unordered_map>
 #include <list>
+#include <vector>
 #include <string>
 #include "visitor.h"
 using namespace std;
-enum BinaryOp { AND_OP, OR_OP, PLUS_OP, MINUS_OP, MUL_OP, DIV_OP, LT_OP, LE_OP, EQ_OP, PLUSPLUS_OP, MINUSMINUS_OP, NOT_EQ_OP}; // falta el NOT_EQUAL
+enum BinaryOp { AND_OP, OR_OP, PLUS_OP, MINUS_OP, MUL_OP, DIV_OP, LT_OP, LE_OP, GT_OP, GE_OP, EQ_OP, PLUSPLUS_OP, MINUSMINUS_OP, NOT_EQ_OP}; // falta el NOT_EQUAL
 enum UnaryOp { NOT_OP };
 
 class Body;
@@ -168,17 +169,74 @@ public:
 
 class Program {
 public:
-    Body* body;
-    Program(Body* body);
+    VarDecList* vardecs;
+    FunDecList* fundecs;
+    Program(VarDecList* vardecs, FunDecList* fundecs);
+    int accept(Visitor* visitor);
     ~Program();
+};
+
+// Función
+class FunDec {
+public:
+    std::string nombre;
+    std::list<std::string> parametros;
+    std::list<std::string> tipos_parametros;
+    std::string tipo_retorno;
+    Body* cuerpo;
+    FunDec(std::string nombre, std::list<std::string> parametros, 
+           std::list<std::string> tipos_parametros, std::string tipo_retorno, Body* cuerpo);
+    int accept(Visitor* visitor);
+    ~FunDec();
+};
+
+class FunDecList {
+public:
+    std::list<FunDec*> fundecs;
+    FunDecList();
+    void add(FunDec* funcdec);
+    int accept(Visitor* visitor);
+    ~FunDecList();
+};
+
+// Llamada a función como expresión
+class FCallExp : public Exp {
+public:
+    std::string nombre;
+    std::list<Exp*> argumentos;
+    FCallExp(std::string nombre, std::list<Exp*> argumentos);
+    int accept(Visitor* visitor);
+    ~FCallExp();
+};
+
+// Llamada a función como statement
+class FCallStm : public Stm {
+public:
+    std::string nombre;
+    std::list<Exp*> argumentos;
+    FCallStm(std::string nombre, std::list<Exp*> argumentos);
+    int accept(Visitor* visitor);
+    ~FCallStm();
+};
+
+// Return statement
+class ReturnStatement : public Stm {
+public:
+    Exp* e;
+    ReturnStatement(Exp* e);
+    int accept(Visitor* visitor);
+    ~ReturnStatement();
 };
 // If - While - For 
 class IfStatement : public Stm {
 public:
     Exp* condition;
     Body* then;
+    std::vector<std::pair<Exp*, Body*>> elseifs; //Condicion + Que hacer si se cumple dicha condicion
     Body* els;
-    IfStatement(Exp* condition, Body* then, Body* els);
+    IfStatement(Exp* condition, Body* then);
+    void addElseIf(Exp* condition, Body* body);
+    void setElse(Body* body);
     int accept(Visitor* visitor);
     ~IfStatement();
 };

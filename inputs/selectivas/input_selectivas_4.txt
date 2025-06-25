@@ -1,0 +1,11 @@
+var num : Int = 5
+var factorial : Int = 1
+
+fun main(): Int {
+    while (num > 0) {
+        factorial = factorial * num
+        num = num - 1
+    }
+    println(factorial)
+    return 0
+}

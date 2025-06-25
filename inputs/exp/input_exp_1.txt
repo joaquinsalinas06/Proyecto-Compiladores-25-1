@@ -1,0 +1,9 @@
+var x : Int = 5
+var y : Int = 3
+
+fun main(): Int {
+    println(x + y * 2)
+    println((x + y) * 2)
+    println(x * y + 1)
+    return 0
+}

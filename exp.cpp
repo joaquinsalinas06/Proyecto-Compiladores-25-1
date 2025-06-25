@@ -57,8 +57,25 @@ PrintStatement::~PrintStatement() {
     delete e;
 }
 
-IfStatement::IfStatement(Exp* condition, Body* then, Body* els): condition(condition), then(then), els(els) {}
-IfStatement::~IfStatement() { }
+IfStatement::IfStatement(Exp* condition, Body* then): condition(condition), then(then), els(nullptr) {}
+
+void IfStatement::addElseIf(Exp* condition, Body* body) {
+    elseifs.push_back(std::make_pair(condition, body));
+}
+
+void IfStatement::setElse(Body* body) {
+    els = body;
+}
+
+IfStatement::~IfStatement() { 
+    delete condition;
+    delete then;
+    for (auto& elseif : elseifs) {
+        delete elseif.first;
+        delete elseif.second;
+    }
+    delete els;
+}
 
 WhileStatement::WhileStatement(Exp* condition, Body* body) : condition(condition), b(body) {}
 WhileStatement::~WhileStatement() {}
@@ -101,14 +118,15 @@ Body::~Body() {
     delete slist;
 }
 
-Program::Program(Body* b): body(b) {}
+Program::Program(VarDecList* vardecs, FunDecList* fundecs): vardecs(vardecs), fundecs(fundecs) {}
 Program::~Program() {
-    delete body;
+    delete vardecs;
+    delete fundecs;
 }
 
 Stm::~Stm() {}
 string Exp::binopToChar(BinaryOp op) {
-    string  c;
+    string c = "";
     switch(op) {
         case PLUS_OP: c = "+"; break;
         case MINUS_OP: c = "-"; break;
@@ -121,12 +139,63 @@ string Exp::binopToChar(BinaryOp op) {
         
         case MUL_OP: c = "*"; break;
         case DIV_OP: c = "/"; break;
-        
         case LT_OP: c = "<"; break;
         case LE_OP: c = "<="; break;
+        case GT_OP: c = ">"; break;
+        case GE_OP: c = ">="; break;
         case EQ_OP: c = "=="; break;
         case NOT_EQ_OP: c ="!="; break;
         default: c = "$";
     }
     return c;
+}
+
+// FunDec
+FunDec::FunDec(string nombre, list<string> parametros, list<string> tipos_parametros, 
+               string tipo_retorno, Body* cuerpo) 
+    : nombre(nombre), parametros(parametros), tipos_parametros(tipos_parametros), 
+      tipo_retorno(tipo_retorno), cuerpo(cuerpo) {}
+
+FunDec::~FunDec() {
+    delete cuerpo;
+}
+
+// FunDecList
+FunDecList::FunDecList() {}
+
+void FunDecList::add(FunDec* fundec) {
+    fundecs.push_back(fundec);
+}
+
+FunDecList::~FunDecList() {
+    for (auto fundec : fundecs) {
+        delete fundec;
+    }
+}
+
+// FCallExp  
+FCallExp::FCallExp(string nombre, list<Exp*> argumentos) 
+    : nombre(nombre), argumentos(argumentos) {}
+
+FCallExp::~FCallExp() {
+    for (auto arg : argumentos) {
+        delete arg;
+    }
+}
+
+// FCallStm
+FCallStm::FCallStm(string nombre, list<Exp*> argumentos) 
+    : nombre(nombre), argumentos(argumentos) {}
+
+FCallStm::~FCallStm() {
+    for (auto arg : argumentos) {
+        delete arg;
+    }
+}
+
+// ReturnStatement
+ReturnStatement::ReturnStatement(Exp* e) : e(e) {}
+
+ReturnStatement::~ReturnStatement() {
+    if (e) delete e;
 }
