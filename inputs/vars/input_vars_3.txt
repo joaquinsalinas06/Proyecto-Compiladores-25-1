@@ -1,0 +1,13 @@
+var counter : Int = 0
+var total : Int = 100
+
+fun main(): Int {
+    counter += 10
+    total -= 25
+    
+    println(counter)
+    println(total)
+    println(counter + total)
+    return 0
+}
+

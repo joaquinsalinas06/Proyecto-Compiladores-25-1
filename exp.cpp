@@ -118,14 +118,15 @@ Body::~Body() {
     delete slist;
 }
 
-Program::Program(Body* b): body(b) {}
+Program::Program(VarDecList* vardecs, FunDecList* fundecs): vardecs(vardecs), fundecs(fundecs) {}
 Program::~Program() {
-    delete body;
+    delete vardecs;
+    delete fundecs;
 }
 
 Stm::~Stm() {}
 string Exp::binopToChar(BinaryOp op) {
-    string  c;
+    string c = "";
     switch(op) {
         case PLUS_OP: c = "+"; break;
         case MINUS_OP: c = "-"; break;
@@ -147,4 +148,54 @@ string Exp::binopToChar(BinaryOp op) {
         default: c = "$";
     }
     return c;
+}
+
+// FunDec
+FunDec::FunDec(string nombre, list<string> parametros, list<string> tipos_parametros, 
+               string tipo_retorno, Body* cuerpo) 
+    : nombre(nombre), parametros(parametros), tipos_parametros(tipos_parametros), 
+      tipo_retorno(tipo_retorno), cuerpo(cuerpo) {}
+
+FunDec::~FunDec() {
+    delete cuerpo;
+}
+
+// FunDecList
+FunDecList::FunDecList() {}
+
+void FunDecList::add(FunDec* fundec) {
+    fundecs.push_back(fundec);
+}
+
+FunDecList::~FunDecList() {
+    for (auto fundec : fundecs) {
+        delete fundec;
+    }
+}
+
+// FCallExp  
+FCallExp::FCallExp(string nombre, list<Exp*> argumentos) 
+    : nombre(nombre), argumentos(argumentos) {}
+
+FCallExp::~FCallExp() {
+    for (auto arg : argumentos) {
+        delete arg;
+    }
+}
+
+// FCallStm
+FCallStm::FCallStm(string nombre, list<Exp*> argumentos) 
+    : nombre(nombre), argumentos(argumentos) {}
+
+FCallStm::~FCallStm() {
+    for (auto arg : argumentos) {
+        delete arg;
+    }
+}
+
+// ReturnStatement
+ReturnStatement::ReturnStatement(Exp* e) : e(e) {}
+
+ReturnStatement::~ReturnStatement() {
+    if (e) delete e;
 }

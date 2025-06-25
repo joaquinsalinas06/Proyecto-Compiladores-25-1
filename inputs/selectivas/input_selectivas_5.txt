@@ -1,0 +1,10 @@
+var total : Int = 0
+
+fun main(): Int {
+    for (i in 1..5) {
+        total += i
+        println(i)
+    }
+    println(total)
+    return 0
+}

@@ -30,6 +30,11 @@ public:
     VarDecList* parseVarDecList();
     Body* parseBody();
     
+    FunDec* parseFunDec();
+    FunDecList* parseFunDecList();
+    Exp* parseFCallExp();
+    ReturnStatement* parseReturnStatement();
+    
 };
 
 #endif // PARSER_H

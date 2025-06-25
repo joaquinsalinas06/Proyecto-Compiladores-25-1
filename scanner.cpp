@@ -104,6 +104,10 @@ Token* Scanner::nextToken() {
             token = new Token(Token::AND, word, 0, word.length());
         } else if (word == "or") {
             token = new Token(Token::OR, word, 0, word.length());
+        } else if (word == "fun") {
+            token = new Token(Token::FUN, word, 0, word.length());
+        } else if (word == "return") {
+            token = new Token(Token::RETURN, word, 0, word.length());
         } else {
             token = new Token(Token::ID, word, 0, word.length());
         }

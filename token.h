@@ -16,7 +16,8 @@ public:
         FOR, IN, // in: para rangos en kotlin
         FALSE, TRUE, // booleanos
         INT, FLOAT, BOOLEAN, // enteros, floats y booleanos
-        NOT
+        NOT,
+        FUN, RETURN // Funciones y retorno
     };
 
     Type type;

@@ -1,0 +1,14 @@
+fun calcular(x: Int, y: Int): Int {
+    var resultado : Int
+    resultado = x * y + 10
+    return resultado
+}
+
+fun main(): Int {
+    var a : Int = 5
+    var b : Int = 3
+    var total : Int
+    total = calcular(a, b)
+    println(total)
+    return 0
+}

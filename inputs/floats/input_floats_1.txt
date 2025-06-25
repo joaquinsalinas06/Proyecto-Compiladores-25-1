@@ -1,0 +1,10 @@
+var x : Float = 10.5f
+var y : Float = 20.3f
+
+fun main(): Int {
+    println(x)
+    println(y)
+    println(x + y)
+    return 0
+}
+

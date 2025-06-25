@@ -1,0 +1,12 @@
+var a : Int = 5
+var b : Int = 15
+var result : Int
+
+fun main(): Int {
+    result = a * b
+    println(a)
+    println(b)
+    println(result)
+    return 0
+}
+

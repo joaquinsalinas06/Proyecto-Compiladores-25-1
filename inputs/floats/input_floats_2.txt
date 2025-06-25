@@ -1,0 +1,11 @@
+var price : Float = 99.99f
+var tax : Float = 8.5f
+var total : Float
+
+fun main(): Int {
+    total = price + tax
+    println(price)
+    println(tax)
+    println(total)
+    return 0
+}

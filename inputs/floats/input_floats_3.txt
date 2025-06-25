@@ -1,0 +1,11 @@
+var radius : Float = 5.0f
+var pi : Float = 3.14f
+var area : Float
+
+fun main(): Int {
+    area = pi * radius * radius
+    println(radius)
+    println(pi)
+    println(area)
+    return 0
+}

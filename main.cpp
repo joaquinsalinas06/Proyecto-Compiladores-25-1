@@ -46,10 +46,27 @@ int main(int argc, const char* argv[]) {
         // typeVisitor.check(program);
         cout << endl;
         cout << "IMPRIMIR:" << endl;
-        printVisitor.imprimir(program);
-        cout  << endl;
+        printVisitor.imprimir(program);        cout  << endl;
         cout << "EJECUTAR:" << endl;
         evalVisitor.ejecutar(program);
+        
+        // Generar código assembly
+        cout << endl << "GENERANDO CÓDIGO ASSEMBLY:" << endl;
+        string inputFile(argv[1]);
+        size_t dotPos = inputFile.find_last_of('.');
+        string baseName = (dotPos == string::npos) ? inputFile : inputFile.substr(0, dotPos);
+        string outputFilename = baseName + ".s";
+        ofstream outfile(outputFilename);
+        if (!outfile.is_open()) {
+            cerr << "Error al crear el archivo de salida: " << outputFilename << endl;
+            return 1;
+        }
+        cout << "Generando codigo ensamblador en " << outputFilename << endl;
+        GenCodeVisitor genCodeVisitor(outfile);
+        genCodeVisitor.generar(program);
+        outfile.close();
+        cout << "Codigo assembly generado exitosamente." << endl;
+        
         delete program;
     } catch (const exception& e) {
         cout << "Error durante la ejecución: " << e.what() << endl;

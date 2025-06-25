@@ -73,6 +73,9 @@ std::ostream& operator << ( std::ostream& outs, const Token & tok )
         case Token::FLOAT: outs << "TOKEN(FLOAT)"; break;
         case Token::BOOLEAN: outs << "TOKEN(BOOLEAN)"; break;
 
+        case Token::FUN: outs << "TOKEN(FUN)"; break;
+        case Token::RETURN: outs << "TOKEN(RETURN)"; break;
+
         default: outs << "TOKEN(UNKNOWN)"; break;
     }
     return outs;
