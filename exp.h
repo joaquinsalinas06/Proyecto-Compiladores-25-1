@@ -12,7 +12,7 @@ class FunDecList;
 
 using namespace std;
 enum BinaryOp { AND_OP, OR_OP, PLUS_OP, MINUS_OP, MUL_OP, DIV_OP, LT_OP, LE_OP, GT_OP, GE_OP, EQ_OP, PLUSPLUS_OP, MINUSMINUS_OP, NOT_EQ_OP}; // falta el NOT_EQUAL
-enum UnaryOp { NOT_OP };
+enum UnaryOp { NOT_OP, UMINUS_OP };
 
 class Body;
 

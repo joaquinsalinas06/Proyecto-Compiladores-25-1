@@ -39,7 +39,7 @@ def compile_project():
     print("Compilando...")
     compile_cmd = ["g++", "-g"] + source_files + ["-o", "main.exe"]
     try:
-        result = subprocess.run(compile_cmd, timeout=30)
+        result = subprocess.run(compile_cmd)
         
         if result.returncode != 0:
             print("Error de compilación.")

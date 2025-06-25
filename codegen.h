@@ -5,19 +5,36 @@
 #include <fstream>
 #include <unordered_map>
 
+class Exp;
+class Stm;
+class Program;
+class Body;
+
 class GenCodeVisitor : public Visitor {
 public:
     std::ofstream& out;
     std::unordered_map<std::string, bool> memoriaGlobal;
     std::unordered_map<std::string, int> memoria;
+    std::unordered_map<std::string, std::string> varTypes;  // Segun la variable guarda su tipo
+    std::unordered_map<std::string, double> floatConstants; // Para almacenar constantes flotantes
+    std::vector<VarDec*> globalVarDecs; // Variables globales
     int offset;
     int labelCounter;
+    int constantCounter; // Contador de constantes
     bool entornoFuncion;
     std::string currentFunction;
+    bool isIntegerResult; // Evaluar si el resultado es un entero o float
 
-    GenCodeVisitor(std::ofstream& out_stream) : out(out_stream), offset(-8), labelCounter(0), entornoFuncion(false) {}
+    GenCodeVisitor(std::ofstream& out_stream) : out(out_stream), offset(-8), labelCounter(0), constantCounter(0), entornoFuncion(false), isIntegerResult(true) {}
 
     void generar(Program* program);
+    void collectConstants(Program* program);
+    void collectConstantsFromExp(Exp* exp);
+    void collectConstantsFromBody(Body* body);
+    void collectConstantsFromStmt(Stm* stmt);
+    
+    bool needsFloatOperation(BinaryExp* exp);
+    std::string getFloatConstant(double value);
 
     // Métodos visit para expresiones
     int visit(BinaryExp* exp) override;
