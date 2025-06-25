@@ -1,6 +1,5 @@
 #ifndef VISITOR_H
 #define VISITOR_H
-#include "exp.h"
 #include "environment.h"
 #include <list>
 #include <unordered_map>
@@ -198,46 +197,5 @@ public:
     void visit(Program* program) override;
 };
 
-class GenCodeVisitor : public Visitor {
-private:
-    std::ostream& out;
-    std::unordered_map<std::string, int> memoria;          // Variables locales y su offset
-    std::unordered_map<std::string, bool> memoriaGlobal;   // Variables globales
-    int offset;                                            // Offset actual en stack
-    int labelCounter;                                      // Contador para etiquetas únicas
-    bool entornoFuncion;                                   // Flag para distinguir contexto
-    std::string currentFunction;                           // Nombre de la función actual
-    
-public:
-    GenCodeVisitor(std::ostream& out) : out(out), offset(-8), labelCounter(0), entornoFuncion(false) {}
-    
-    void generar(Program* program);
-    
-    // Métodos del visitor
-    int visit(BinaryExp* exp) override;
-    int visit(UnaryExp* exp) override;
-    int visit(NumberExp* exp) override;
-    int visit(DecimalExp* exp) override;
-    int visit(BoolExp* exp) override;
-    int visit(IdentifierExp* exp) override;
-    int visit(RangeExp* exp) override;
-    void visit(AssignStatement* stm) override;
-    void visit(PlusAssignStatement* stm) override;
-    void visit(MinusAssignStatement* stm) override;
-    void visit(PrintStatement* stm) override;
-    void visit(IfStatement* stm) override;
-    void visit(WhileStatement* stm) override;
-    void visit(ForStatement* stm) override;
-    void visit(VarDec* stm) override;
-    void visit(VarDecList* stm) override;
-    void visit(StatementList* stm) override;
-    void visit(Body* b) override;
-    void visit(Program* program) override;
-    void visit(FunDec* fundec) override;
-    void visit(FunDecList* fundecs) override;
-    int visit(FCallExp* fcall) override;
-    void visit(FCallStm* fcall) override;
-    void visit(ReturnStatement* retstm) override;
-};
 
 #endif // VISITOR_H

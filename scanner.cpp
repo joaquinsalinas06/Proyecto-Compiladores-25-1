@@ -46,10 +46,8 @@ Token* Scanner::nextToken() {
             token = new Token(Token::DECIMAL, input, first, current - first);
             token->has_f = has_f;
         } 
-
         else if (is_float) {
-            // si es flotante pero no tiene 'f', generamos un error
-            token = new Token(Token::ERR, input, first, current - first);
+            token = new Token(Token::DECIMAL, input, first, current - first);
         }
         // número entero pero tiene "f" al final, se trata como float pero el número es un NUM
         else if (is_int && current < input.length() && input[current] == 'f'){

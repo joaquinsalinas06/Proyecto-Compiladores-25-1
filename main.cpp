@@ -4,6 +4,7 @@
 #include "scanner.h"
 #include "parser.h"
 #include "visitor.h"
+#include "codegen.h"
 
 using namespace std;
 
@@ -51,7 +52,7 @@ int main(int argc, const char* argv[]) {
         evalVisitor.ejecutar(program);
         
         // Generar código assembly
-        cout << endl << "GENERANDO CÓDIGO ASSEMBLY:" << endl;
+        cout << endl << "GENERANDO CODIGO ASSEMBLY:" << endl;
         string inputFile(argv[1]);
         size_t dotPos = inputFile.find_last_of('.');
         string baseName = (dotPos == string::npos) ? inputFile : inputFile.substr(0, dotPos);

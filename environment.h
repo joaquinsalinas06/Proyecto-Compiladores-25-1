@@ -83,7 +83,7 @@ public:
             int_levels.back()[var] = 0;
         } else if (type == "Float") {
             float_levels.back()[var] = 0.0f;
-        } else if (type == "Boolean") { // ¡NUEVO! Inicialización por defecto para booleanos
+        } else if (type == "Boolean") {
             bool_levels.back()[var] = false;
         }
         type_levels.back()[var] = type;
@@ -114,7 +114,6 @@ public:
         return 0.0f;
     }
 
-    // ¡NUEVO! Método para buscar el valor de una variable booleana
     bool lookup_bool(string var) {
         int n = bool_levels.size() - 1;
         while (n >= 0) {
@@ -152,7 +151,6 @@ public:
         return false;
     }
 
-    // ¡NUEVO! Método para actualizar el valor de una variable booleana
     bool update(string var, bool val) {
         int n = bool_levels.size() - 1;
         while (n >= 0) {
