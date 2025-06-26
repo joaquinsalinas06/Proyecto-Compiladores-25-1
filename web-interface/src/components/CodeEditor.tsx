@@ -243,7 +243,7 @@ export default function KotlinCompiler() {
     return () => {
       clearTimeout(startDelay)
     }
-  }, [output, displayedOutput, isTyping, typingComplete]) // Incluir todas las dependencias
+  }, [output]) // Solo depende de output para evitar bucle infinito
 
   const examples = {
     variables: {
