@@ -24,7 +24,7 @@ public:
     bool entornoFuncion;
     std::string currentFunction;
     bool isIntegerResult; // Evaluar si el resultado es un entero o float
-
+    
     GenCodeVisitor(std::ofstream& out_stream) : out(out_stream), offset(-8), labelCounter(0), constantCounter(0), entornoFuncion(false), isIntegerResult(true) {}
 
     void generar(Program* program);

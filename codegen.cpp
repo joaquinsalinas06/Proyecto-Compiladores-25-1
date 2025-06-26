@@ -537,37 +537,37 @@ void GenCodeVisitor::visit(WhileStatement* stm) {
 }
 
 void GenCodeVisitor::visit(ForStatement* stm) {
-    int labelId = labelCounter++;
-    
     if (RangeExp* range = dynamic_cast<RangeExp*>(stm->range)) {
+        int labelId = labelCounter++;
+
+        // Evaluar y guardar start y end
         range->start->accept(this);
         offset -= 8;
         int startOffset = offset;
-        out << "    movq %rax, " << startOffset << "(%rbp)" << endl;  // Guardar start
+        out << "    movq %rax, " << startOffset << "(%rbp)" << endl;
 
         range->end->accept(this);
         offset -= 8;
         int endOffset = offset;
-        out << "    movq %rax, " << endOffset << "(%rbp)" << endl;    // Guardar end
+        out << "    movq %rax, " << endOffset << "(%rbp)" << endl;
         
-        // Reservar espacio para la variable del for si no existe
+        // Variable del loop
         if (memoria.find(stm->id) == memoria.end()) {
-            memoria[stm->id] = offset;
             offset -= 8;
+            memoria[stm->id] = offset;
+            varTypes[stm->id] = "Int";
         }
         
-        // Inicializar variable del loop con el valor de start
         out << "    movq " << startOffset << "(%rbp), %rax" << endl;
-        out << "    movq %rax, " << memoria[stm->id] << "(%rbp)" << endl;  // i = start
+        out << "    movq %rax, " << memoria[stm->id] << "(%rbp)" << endl;
         
         out << ".for_start_" << labelId << ":" << endl;
-        // Verificar condición: i <= end
-        out << "    movq " << memoria[stm->id] << "(%rbp), %rax" << endl;  // Cargar i
-        out << "    movq " << endOffset << "(%rbp), %rcx" << endl;         // Cargar end
-        out << "    cmpq %rcx, %rax" << endl;                             // Comparar i con end
-        out << "    jg .for_end_" << labelId << endl;                     // Si i > end, salir
         
-        // Cuerpo del for
+        out << "    movq " << memoria[stm->id] << "(%rbp), %rax" << endl;
+        out << "    movq " << endOffset << "(%rbp), %rcx" << endl;
+        out << "    cmpq %rcx, %rax" << endl;
+        out << "    jg .for_end_" << labelId << endl;  // Si i > end, salir
+        
         stm->body->accept(this);
         
         // Incrementar i
