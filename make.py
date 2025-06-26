@@ -17,7 +17,8 @@ input_categories = {
     "funciones": "inputs/funciones", # 3 ejemplos de funciones
     "floats": "inputs/floats",       # 5 ejemplos de primera extensión (floats)
     "arrays": "inputs/arrays",       # 5 ejemplos de segunda extensión (arrays)
-    "tests": "inputs/tests"          # Ejemplos adicionales de prueba
+    "tests": "inputs/tests",         # Ejemplos adicionales de prueba
+    "web": "inputs/web"              # Inputs desde la interfaz web
 }
 
 # Opciones de ejecución
@@ -139,7 +140,7 @@ def execute_file(filepath, steps_to_run=None):
     
     try:
         # Ejecutar sin timeout para evitar problemas
-        result = subprocess.run(["./main.exe", filepath], capture_output=False)
+        result = subprocess.run(["main.exe", filepath], capture_output=False)
         if result.returncode != 0:
             print(f"Error ejecutando {filepath} (código: {result.returncode})")
     except FileNotFoundError:
