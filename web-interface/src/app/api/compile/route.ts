@@ -1,228 +1,476 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { exec } from 'child_process'
-import { promisify } from 'util'
-import { writeFile, readFile, mkdir } from 'fs/promises'
-import path from 'path'
+import { NextRequest, NextResponse } from 'next/server';
+import { writeFile, unlink, mkdir, readFile, readdir } from 'fs/promises';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import path from 'path';
 
-const execAsync = promisify(exec)
-function formatOutput(stdout: string, mode: string): string {
-  const lines = stdout.split('\n')
-  
-  if (mode === 'eval') {
-    let inExecutionSection = false
-    let executionOutput: string[] = []
-    
-    for (const line of lines) {
-      if (line.includes('EJECUTAR:')) {
-        inExecutionSection = true
-        continue
-      }
-      
-      if (inExecutionSection) {
-        if (line.includes('GENERANDO CODIGO ASSEMBLY:') || line.startsWith('Generando codigo ensamblador')) {
-          break
-        }
-        if (line.trim() && !line.includes('TOKEN(') && !line.includes('Iniciando') && !line.includes('exitoso')) {
-          executionOutput.push(line.trim())
-        }
-      }
-    }
-    
-    if (executionOutput.length > 0) {
-      const result = [
-        '🎯 RESULTADO DE LA EJECUCIÓN',
-        '━'.repeat(40),
-        ...executionOutput,
-        '━'.repeat(40),
-        '✅ Programa ejecutado exitosamente'
-      ]
-      return result.join('\n')
-    } else {
-      return [
-        '🎯 RESULTADO DE LA EJECUCIÓN',
-        '━'.repeat(40),
-        '✅ Programa ejecutado correctamente (sin salida)',
-        '━'.repeat(40)
-      ].join('\n')
-    }
-  } else if (mode === 'assembly') {
-    let inExecutionSection = false
-    let executionOutput: string[] = []
-    let assemblyGenerated = false
-    
-    for (const line of lines) {
-      if (line.includes('EJECUTAR:')) {
-        inExecutionSection = true
-        continue
-      }
-      
-      if (line.includes('GENERANDO CODIGO ASSEMBLY:')) {
-        inExecutionSection = false
-        assemblyGenerated = true
-        continue
-      }
-      
-      if (inExecutionSection && line.trim() && !line.includes('TOKEN(') && !line.includes('Iniciando') && !line.includes('exitoso')) {
-        executionOutput.push(line.trim())
-      }
-      
-      if (line.includes('Codigo assembly generado exitosamente')) {
-        assemblyGenerated = true
-      }
-    }
-    
-    const result = []
-    
-    result.push('🎯 RESULTADO DE LA EJECUCIÓN')
-    result.push('━'.repeat(40))
-    if (executionOutput.length > 0) {
-      result.push(...executionOutput)
-    } else {
-      result.push('✅ Programa ejecutado correctamente (sin salida)')
-    }
-    result.push('━'.repeat(40))
-    result.push('')
-    
-    if (assemblyGenerated) {
-      result.push('⚙️ GENERACIÓN DE CÓDIGO ASSEMBLY')
-      result.push('━'.repeat(40))
-      result.push('✅ Código assembly generado exitosamente')
-      result.push('📄 Archivo disponible para descarga')
-      result.push('━'.repeat(40))
-    }
-    
-    return result.join('\n')
-  }
-  
-  return stdout
-}
+const execAsync = promisify(exec);
 
 export async function POST(request: NextRequest) {
-  let command = ''
-  let compilerDir = ''
-  
   try {
-    const { code, mode = 'eval' } = await request.json()
-
-    if (!code || code.trim() === '') {
-      return NextResponse.json(
-        { success: false, error: 'No code provided' },
-        { status: 400 }
-      )
-    }
-
-    // Generar nombre único para el archivo
-    const timestamp = Date.now()
-    const filename = `web_input_${timestamp}.txt`
+    const { code, mode = 'eval' } = await request.json();
     
-    // Ruta al directorio del compilador (relativa desde web-interface)
-    compilerDir = path.join(process.cwd(), '..')
-    const inputPath = path.join(compilerDir, 'inputs', 'web', filename)
+    // Crear directorio web si no existe
+    const webDir = path.join(process.cwd(), '..', 'inputs', 'web');
+    await mkdir(webDir, { recursive: true });
     
-    // Crear el archivo de entrada
-    await mkdir(path.dirname(inputPath), { recursive: true })
-    await writeFile(inputPath, code, 'utf-8')
-
-    // Determinar el nombre del ejecutable según el sistema operativo
-    const isWindows = process.platform === 'win32'
-    const mainExeName = isWindows ? 'main.exe' : 'main'
-    const mainExePath = path.join(compilerDir, mainExeName)
-    const inputRelativePath = `inputs/web/${filename}`
-    
-    // Verificar que el ejecutable existe
+    // Limpiar archivos temporales antiguos (más de 1 hora)
     try {
-      await readFile(mainExePath)
-    } catch (error) {
-      const compileCmd = isWindows 
-        ? 'python make.py' 
-        : 'g++ -g main.cpp scanner.cpp parser.cpp token.cpp exp.cpp visitor.cpp codegen.cpp -o main && chmod +x main'
-      
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: `No se encontró el ejecutable ${mainExeName}. Asegúrate de compilar el proyecto primero.`,
-          details: `Buscar en: ${mainExePath}`,
-          compileInstructions: `Comando de compilación: ${compileCmd}`
-        },
-        { status: 404 }
-      )
+      const files = await readdir(webDir);
+      const now = Date.now();
+      for (const file of files) {
+        if (file.startsWith('temp_') && (file.endsWith('.txt') || file.endsWith('.s'))) {
+          const timestamp = parseInt(file.replace('temp_', '').replace('.txt', '').replace('.s', ''));
+          if (now - timestamp > 3600000) { // 1 hora en ms
+            await unlink(path.join(webDir, file));
+          }
+        }
+      }
+    } catch (e) {
+      console.log('Error limpiando archivos antiguos:', e);
     }
     
-    // Construir el comando según el sistema operativo
-    if (isWindows) {
-      command = `"${mainExePath}" "${inputRelativePath}"`
+    // Crear archivo temporal
+    const filename = `temp_${Date.now()}.txt`;
+    const filepath = path.join(webDir, filename);
+    await writeFile(filepath, code, 'utf8');
+    
+    // Mapear mode a steps de make.py según tu configuración
+    const modeToSteps: { [key: string]: string } = {
+      'eval': '4',        // Solo Eval Visitor (ejecutar)
+      'assembly': '4,5'   // Eval Visitor + Assembly Generation
+    };
+    
+    const steps = modeToSteps[mode] || '4'; // Default a Eval
+    
+    // Detectar comando Python según el sistema operativo
+    const isWindows = process.platform === 'win32';
+    const pythonCmd = isWindows ? 'python' : 'python3';
+    const executableName = isWindows ? 'main.exe' : 'main';
+    
+    let compilerCmd: string;
+    
+    if (mode === 'eval') {
+      // Para eval, ejecutar directamente el compilador (más rápido)
+      compilerCmd = isWindows ? `${executableName} ${filepath}` : `./${executableName} ${filepath}`;
     } else {
-      // En Linux, usar ruta relativa y asegurar permisos
-      command = `./main "${inputRelativePath}"`
+      // Para assembly, usar make.py con steps 4,5 (eval + assembly)
+      compilerCmd = `${pythonCmd} make.py --no-compile --steps=${steps} web`;
     }
-
-    // Ejecutar el compilador
-    const { stdout, stderr } = await execAsync(command, { 
-      timeout: 15000,
-      encoding: 'utf-8',
-      cwd: compilerDir
-    })
-
-    let assemblyCode = null
-    if (mode === 'assembly') {
-      // Intentar leer el archivo .s generado
-      const assemblyPath = inputPath.replace('.txt', '.s')
+    
+    console.log(`Ejecutando: ${compilerCmd}`);
+    
+    const { stdout, stderr } = await execAsync(compilerCmd, {
+      cwd: path.join(process.cwd(), '..'),
+      timeout: 30000,
+      maxBuffer: 1024 * 1024
+    });
+    
+    // Limpiar archivo temporal
+    try {
+      await unlink(filepath);
+    } catch (e) {
+      console.log('No se pudo eliminar archivo temporal:', e);
+    }
+    
+    // Procesar salida según el modo
+    let output = '';
+    let assembly = '';
+    
+    if (mode === 'eval') {
+      // Con ejecución directa, la salida es mucho más limpia
+      const lines = stdout.split('\n');
+      let executionOutput = [];
+      let captureOutput = false;
+      
+      for (const line of lines) {
+        const trimmed = line.trim();
+        
+        // Comenzar a capturar después de "EJECUTAR:"
+        if (trimmed === 'EJECUTAR:') {
+          captureOutput = true;
+          continue;
+        }
+        
+        // Si estamos capturando y encontramos contenido útil
+        if (captureOutput && trimmed) {
+          // Parar si encontramos "GENERANDO" o similar
+          if (trimmed.includes('GENERANDO') || trimmed.includes('Generando')) {
+            break;
+          }
+          
+          // Capturar números (enteros y decimales) y resultados útiles
+          if (/^-?\d+(\.\d+)?$/.test(trimmed) || 
+              (!trimmed.includes('TOKEN(') && 
+               !trimmed.includes('Scanner') && 
+               !trimmed.includes('parsing') &&
+               !trimmed.includes('Visitor') &&
+               !trimmed.includes('IMPRIMIR') &&
+               !trimmed.includes('fun main') &&
+               !trimmed.includes('var ') &&
+               !trimmed.includes('return') &&
+               !trimmed.includes('}') &&
+               !trimmed.includes('println'))) {
+            executionOutput.push(trimmed);
+          }
+        }
+      }
+      
+      if (executionOutput.length > 0) {
+        output = executionOutput.join('\n') + '\n\n✅ Compilación exitosa';
+      } else {
+        // Buscar números directamente en todo el output (incluir decimales)
+        const numberMatches = stdout.match(/^-?\d+(\.\d+)?$/gm);
+        if (numberMatches && numberMatches.length > 0) {
+          output = numberMatches.join('\n') + '\n\n✅ Compilación exitosa';
+        } else {
+          output = '✅ Programa ejecutado correctamente (sin salida numérica)';
+        }
+      }
+        
+    } else if (mode === 'assembly') {
+      // Para assembly: usar EXACTAMENTE la misma lógica que eval
+      const lines = stdout.split('\n');
+      let executionOutput = [];
+      let captureEval = false;
+      let foundOurFile = false;
+      
+      for (const line of lines) {
+        const trimmed = line.trim();
+        
+        // Detectar cuando se procesa nuestro archivo específico
+        if (trimmed.includes(`Ejecutando: inputs/web\\${filename}`) || 
+            trimmed.includes(`Ejecutando: inputs/web/${filename}`)) {
+          foundOurFile = true;
+          captureEval = false;
+          continue;
+        }
+        
+        if (foundOurFile) {
+          // Capturar resultado del eval (EXACTAMENTE igual que en modo eval)
+          if (trimmed === 'EJECUTAR:') {
+            captureEval = true;
+            continue;
+          }
+          
+          if (captureEval && trimmed) {
+            // Parar de capturar eval si encontramos "GENERANDO"
+            if (trimmed.includes('GENERANDO') || trimmed.includes('Generando')) {
+              break;
+            }
+            
+            // USAR EXACTAMENTE EL MISMO FILTRO QUE EN EVAL
+            if (/^-?\d+(\.\d+)?$/.test(trimmed) || 
+                (!trimmed.includes('TOKEN(') && 
+                 !trimmed.includes('Scanner') && 
+                 !trimmed.includes('parsing') &&
+                 !trimmed.includes('Visitor') &&
+                 !trimmed.includes('IMPRIMIR') &&
+                 !trimmed.includes('fun main') &&
+                 !trimmed.includes('var ') &&
+                 !trimmed.includes('return') &&
+                 !trimmed.includes('}') &&
+                 !trimmed.includes('println'))) {
+              executionOutput.push(trimmed);
+            }
+          }
+        }
+      }
+      
+      // Formatear output EXACTAMENTE igual que en modo eval
+      if (executionOutput.length > 0) {
+        output = executionOutput.join('\n') + '\n\n✅ Compilación exitosa';
+      } else {
+        // Buscar números directamente en todo el output (incluir decimales)
+        const numberMatches = stdout.match(/^-?\d+(\.\d+)?$/gm);
+        if (numberMatches && numberMatches.length > 0) {
+          output = numberMatches.join('\n') + '\n\n✅ Compilación exitosa';
+        } else {
+          output = '✅ Programa ejecutado correctamente (sin salida numérica)';
+        }
+      }
+      
+      // Leer el archivo assembly generado para el panel separado
       try {
-        assemblyCode = await readFile(assemblyPath, 'utf-8')
-      } catch (error) {
-        // No se pudo leer el archivo assembly
-        console.log('No se generó archivo assembly:', error)
+        const assemblyFilename = filename.replace('.txt', '.s');
+        const assemblyPath = path.join(webDir, assemblyFilename);
+        assembly = await readFile(assemblyPath, 'utf8');
+        
+        // En Linux/Unix, NO limpiar el archivo assembly para permitir ejecución posterior
+        if (isWindows) {
+          await unlink(assemblyPath);
+        }
+      } catch (e) {
+        console.log('No se pudo leer archivo assembly:', e);
+        const assemblyMatch = stdout.match(/\.text[\s\S]*$/);
+        if (assemblyMatch) {
+          assembly = assemblyMatch[0];
+        }
       }
     }
-
-    const formattedOutput = formatOutput(stdout, mode)
-
+    
     return NextResponse.json({
       success: true,
-      output: formattedOutput,
-      errors: stderr,
-      assembly: assemblyCode,
-      filename: filename.replace('.txt', '.s'),
-      rawOutput: stdout
-    })
-
-  } catch (error: any) {
-    console.error('Error en API compile:', error)
-    console.error('Command:', command)
-    console.error('Compiler dir:', compilerDir)
+      output: output || 'Compilación completada',
+      assembly: assembly,
+      error: stderr || null,
+      mode: mode,
+      steps: steps,
+      canExecuteAssembly: !isWindows && mode === 'assembly' && assembly, // Solo en Linux/Unix si hay assembly
+      assemblyFilename: mode === 'assembly' ? filename.replace('.txt', '.s') : null
+    });
     
-    // Manejar diferentes tipos de errores
-    if (error.code === 'ETIMEDOUT') {
-      return NextResponse.json(
-        { success: false, error: 'Timeout: El código tardó demasiado en ejecutarse' },
-        { status: 408 }
-      )
-    }
+  } catch (error: any) {
+    console.error('Error en compilación:', error);
+    
+    return NextResponse.json({
+      success: false,
+      error: error.message || 'Error desconocido',
+      output: null
+    }, { status: 500 });
+  }
+}
 
-    if (error.code === 'ENOENT') {
-      const expectedExe = process.platform === 'win32' ? 'main.exe' : 'main'
-      const compileCmd = process.platform === 'win32' 
-        ? 'python make.py' 
-        : 'g++ -g main.cpp scanner.cpp parser.cpp token.cpp exp.cpp visitor.cpp codegen.cpp -o main && chmod +x main'
+// ✨ API DINÁMICA: Lee automáticamente los archivos reales de inputs/
+export async function GET() {
+  try {
+    const examples: { [key: string]: string } = {};
+    
+    // Categorías definidas en tu make.py (basado en input_categories)
+    const categories: { [key: string]: string } = {
+      "vars": "inputs/vars",           // 3 ejemplos de declaración de variables
+      "exp": "inputs/exp",             // 3 ejemplos de expresiones  
+      "selectivas": "inputs/selectivas", // 6 ejemplos de control selectivo
+      "funciones": "inputs/funciones", // 3 ejemplos de funciones
+      "floats": "inputs/floats",       // 5 ejemplos de primera extensión (floats)
+      "arrays": "inputs/arrays"        // 5 ejemplos de segunda extensión (arrays)
+    };
+    
+    const basePath = path.join(process.cwd(), '..');
+    
+    // Para cada categoría, leer archivos .txt disponibles
+    for (const [categoryName, categoryPath] of Object.entries(categories)) {
+      try {
+        const fullCategoryPath = path.join(basePath, categoryPath);
+        const files = await readdir(fullCategoryPath);
+        
+        // Buscar archivos .txt, preferir los numerados (1_, 2_, etc.)
+        const txtFiles = files
+          .filter(f => f.endsWith('.txt'))
+          .sort((a, b) => {
+            const aNum = parseInt(a.split('_')[0]) || 999;
+            const bNum = parseInt(b.split('_')[0]) || 999;
+            return aNum - bNum;
+          });
+        
+        if (txtFiles.length > 0) {
+          // Tomar solo el PRIMER archivo válido (no vacío) de cada categoría
+          for (const file of txtFiles) {
+            try {
+              const filePath = path.join(fullCategoryPath, file);
+              const content = await readFile(filePath, 'utf8');
+              
+              // Verificar que no esté vacío o sea placeholder
+              if (content.trim() && 
+                  content.length > 20 && 
+                  !content.toLowerCase().includes('empty') &&
+                  !content.toLowerCase().includes('placeholder') &&
+                  !content.toLowerCase().includes('todo')) {
+                
+                examples[categoryName] = content.trim();
+                break; // Solo tomar el primer ejemplo válido
+              }
+            } catch (e) {
+              console.log(`Error leyendo ${file}:`, e);
+            }
+          }
+        }
+        
+        // Si no se encontró contenido válido, usar ejemplo limpio funcional
+        if (!examples[categoryName]) {
+          const fallbackExamples: { [key: string]: string } = {
+            vars: `fun main(): Int {
+    var edad: Int = 25
+    var altura: Float = 1.75f
+    var activo: Int = 1
+    println(edad)
+    println(altura)
+    println(activo)
+    return 0
+}`,
+            exp: `fun main(): Int {
+    var numero1: Int = 15
+    var numero2: Int = 8
+    var suma: Int = numero1 + numero2
+    var producto: Int = numero1 * numero2
+    var resultado: Int = (suma + producto) / 2
+    println(suma)
+    println(producto) 
+    println(resultado)
+    return 0
+}`, 
+            selectivas: `fun main(): Int {
+    var puntuacion: Int = 85
+    var resultado: Int = 0
+    if (puntuacion >= 90) {
+        resultado = 10
+    } else if (puntuacion >= 70) {
+        resultado = 8
+    } else {
+        resultado = 5
+    }
+    println(resultado)
+    return 0
+}`,
+            funciones: `fun calcular(valor1: Int, valor2: Int): Int {
+    var temp: Int = valor1 + valor2 * 2
+    return temp
+}
+
+fun main(): Int {
+    var numero: Int = 10
+    var resultado: Int = calcular(numero, 5)
+    println(resultado)
+    return 0
+}`,
+            floats: `fun main(): Int {
+    var temperatura: Float = 23.5f
+    var factor: Float = 1.8f
+    var fahrenheit: Float = temperatura * factor + 32.0f
+    var entero: Int = 100
+    println(temperatura)
+    println(fahrenheit)
+    println(entero)
+    return 0
+}`,
+            arrays: `fun main(): Int {
+    var numeros: Array<Int> = [10, 20, 30, 40, 50]
+    var suma: Int = 0
+    var i: Int = 0
+    while (i < 5) {
+        suma = suma + numeros[i]
+        i = i + 1
+    }
+    var promedio: Int = suma / 5
+    println(suma)
+    println(promedio)
+    return 0
+}`
+          };
+          
+          examples[categoryName] = fallbackExamples[categoryName] || `fun main(): Int {
+    var ejemplo: Int = 42
+    println(ejemplo)
+    return 0
+}`;
+        }
+        
+      } catch (e) {
+        console.log(`Error procesando categoría ${categoryName}:`, e);
+        // Fallback si la carpeta no existe
+        examples[categoryName] = `// Categoría: ${categoryName}\n// (Archivos no disponibles actualmente)`;
+      }
+    }
+    
+    return NextResponse.json(examples);
+    
+  } catch (error) {
+    console.error('Error cargando ejemplos dinámicos:', error);
+    return NextResponse.json({ error: 'Error cargando ejemplos' }, { status: 500 });
+  }
+}
+
+// ✨ EJECUTAR ASSEMBLY en Linux/Unix
+export async function PUT(request: NextRequest) {
+  try {
+    const { assemblyCode, filename } = await request.json();
+    
+    // Solo permitir en sistemas Unix/Linux
+    const isWindows = process.platform === 'win32';
+    if (isWindows) {
+      return NextResponse.json({
+        success: false,
+        error: 'La ejecución de assembly solo está disponible en Linux/Unix'
+      }, { status: 400 });
+    }
+    
+    // Crear directorio web si no existe
+    const webDir = path.join(process.cwd(), '..', 'inputs', 'web');
+    await mkdir(webDir, { recursive: true });
+    
+    // Crear archivo assembly temporal
+    const assemblyFilename = `exec_${Date.now()}.s`;
+    const assemblyPath = path.join(webDir, assemblyFilename);
+    await writeFile(assemblyPath, assemblyCode, 'utf8');
+    
+    // Compilar con gcc
+    const executableName = `exec_${Date.now()}`;
+    const executablePath = path.join(webDir, executableName);
+    const compileCmd = `gcc "${assemblyPath}" -o "${executablePath}"`;
+    
+    console.log(`Compilando assembly: ${compileCmd}`);
+    
+    try {
+      const { stdout: compileStdout, stderr: compileStderr } = await execAsync(compileCmd, {
+        cwd: path.join(process.cwd(), '..'),
+        timeout: 15000
+      });
       
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: `No se encontró el ejecutable ${expectedExe}. Asegúrate de compilar el proyecto primero.`,
-          details: `Comando de compilación: ${compileCmd}`
-        },
-        { status: 404 }
-      )
+      if (compileStderr && compileStderr.includes('error')) {
+        return NextResponse.json({
+          success: false,
+          error: `Error de compilación: ${compileStderr}`,
+          output: null
+        }, { status: 400 });
+      }
+      
+      // Ejecutar el binario compilado
+      const executeCmd = `"${executablePath}"`;
+      console.log(`Ejecutando assembly: ${executeCmd}`);
+      
+      const { stdout: execStdout, stderr: execStderr } = await execAsync(executeCmd, {
+        cwd: path.join(process.cwd(), '..'),
+        timeout: 10000
+      });
+      
+      // Limpiar archivos temporales
+      try {
+        await unlink(assemblyPath);
+        await unlink(executablePath);
+      } catch (e) {
+        console.log('Error limpiando archivos:', e);
+      }
+      
+      return NextResponse.json({
+        success: true,
+        output: `${execStdout || '(sin salida)'}\n\n🚀 Assembly ejecutado correctamente`,
+        error: execStderr || null,
+        compileOutput: compileStdout
+      });
+      
+    } catch (error: any) {
+      // Limpiar archivos en caso de error
+      try {
+        await unlink(assemblyPath);
+        await unlink(executablePath);
+      } catch (e) {
+        // Ignorar errores de limpieza
+      }
+      
+      return NextResponse.json({
+        success: false,
+        error: `Error ejecutando assembly: ${error.message}`,
+        output: null
+      }, { status: 500 });
     }
-
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: `Command failed: ${error.message}`,
-        details: error.stderr || '',
-        command: command
-      },
-      { status: 500 }
-    )
+    
+  } catch (error: any) {
+    console.error('Error en ejecución de assembly:', error);
+    
+    return NextResponse.json({
+      success: false,
+      error: error.message || 'Error desconocido',
+      output: null
+    }, { status: 500 });
   }
 }

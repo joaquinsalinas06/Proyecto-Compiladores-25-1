@@ -264,7 +264,7 @@ def show_help():
     
     print("\nCategorías disponibles:")
     for category, path in input_categories.items():
-        exists = "✓" if os.path.exists(path) else "✗"
+        exists = "[OK]" if os.path.exists(path) else "[--]"
         print(f"  {category:<15} - {path} {exists}")
     
     print("\nEjemplos:")
