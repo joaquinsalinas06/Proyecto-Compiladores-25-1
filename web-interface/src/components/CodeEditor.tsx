@@ -243,7 +243,7 @@ export default function KotlinCompiler() {
     return () => {
       clearTimeout(startDelay)
     }
-  }, [output]) // Solo depende de output
+  }, [output, displayedOutput, isTyping, typingComplete]) // Incluir todas las dependencias
 
   const examples = {
     variables: {
@@ -542,7 +542,7 @@ fun main(): Int {
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border border-purple-500/30 backdrop-blur-xl">
                   {/* Ejemplos dinámicos primero */}
-                  {Object.entries(dynamicExamples).map(([key, _]) => (
+                  {Object.entries(dynamicExamples).map(([key]) => (
                     <SelectItem key={key} value={key} className="text-gray-100 hover:bg-purple-500/20 focus:bg-purple-500/20 cursor-pointer">
                       <div className="flex items-center gap-2">
                         <FileCode className="w-4 h-4 text-cyan-400" />
@@ -837,7 +837,7 @@ fun main(): Int {
                         <div className="text-center">
                           <Cpu className="w-12 h-12 mx-auto mb-3 text-gray-600 animate-gentle-float" />
                           <p className="text-base mb-2">Código Assembly no disponible</p>
-                          <p className="text-sm text-gray-600">Cambia a modo "Assembly" y compila para generar código</p>
+                          <p className="text-sm text-gray-600">Cambia a modo &quot;Assembly&quot; y compila para generar código</p>
                           {mode !== "assembly" && (
                             <div className="mt-4">
                               <Button

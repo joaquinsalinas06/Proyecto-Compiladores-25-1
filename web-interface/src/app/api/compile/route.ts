@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
           }
         }
       }
-    } catch (e) {
-      console.log('Error limpiando archivos antiguos:', e);
+    } catch (cleanupError) {
+      console.log('Error limpiando archivos antiguos:', cleanupError);
     }
     
     // Crear archivo temporal
@@ -69,8 +69,8 @@ export async function POST(request: NextRequest) {
     // Limpiar archivo temporal
     try {
       await unlink(filepath);
-    } catch (e) {
-      console.log('No se pudo eliminar archivo temporal:', e);
+    } catch (cleanupError) {
+      console.log('No se pudo eliminar archivo temporal:', cleanupError);
     }
     
     // Procesar salida según el modo
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     if (mode === 'eval') {
       // Con ejecución directa, la salida es mucho más limpia
       const lines = stdout.split('\n');
-      let executionOutput = [];
+      const executionOutput: string[] = [];
       let captureOutput = false;
       
       for (const line of lines) {
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     } else if (mode === 'assembly') {
       // Para assembly: usar EXACTAMENTE la misma lógica que eval
       const lines = stdout.split('\n');
-      let executionOutput = [];
+      const executionOutput: string[] = [];
       let captureEval = false;
       let foundOurFile = false;
       
@@ -200,8 +200,8 @@ export async function POST(request: NextRequest) {
         if (isWindows) {
           await unlink(assemblyPath);
         }
-      } catch (e) {
-        console.log('No se pudo leer archivo assembly:', e);
+      } catch (assemblyError) {
+        console.log('No se pudo leer archivo assembly:', assemblyError);
         const assemblyMatch = stdout.match(/\.text[\s\S]*$/);
         if (assemblyMatch) {
           assembly = assemblyMatch[0];
@@ -220,12 +220,14 @@ export async function POST(request: NextRequest) {
       assemblyFilename: mode === 'assembly' ? filename.replace('.txt', '.s') : null
     });
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error en compilación:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     
     return NextResponse.json({
       success: false,
-      error: error.message || 'Error desconocido',
+      error: errorMessage,
       output: null
     }, { status: 500 });
   }
@@ -280,8 +282,8 @@ export async function GET() {
                 examples[categoryName] = content.trim();
                 break; // Solo tomar el primer ejemplo válido
               }
-            } catch (e) {
-              console.log(`Error leyendo ${file}:`, e);
+            } catch (fileError) {
+              console.log(`Error leyendo ${file}:`, fileError);
             }
           }
         }
@@ -365,8 +367,8 @@ fun main(): Int {
 }`;
         }
         
-      } catch (e) {
-        console.log(`Error procesando categoría ${categoryName}:`, e);
+      } catch (categoryError) {
+        console.log(`Error procesando categoría ${categoryName}:`, categoryError);
         // Fallback si la carpeta no existe
         examples[categoryName] = `// Categoría: ${categoryName}\n// (Archivos no disponibles actualmente)`;
       }
@@ -383,7 +385,7 @@ fun main(): Int {
 // ✨ EJECUTAR ASSEMBLY en Linux/Unix
 export async function PUT(request: NextRequest) {
   try {
-    const { assemblyCode, filename } = await request.json();
+    const { assemblyCode } = await request.json();
     
     // Solo permitir en sistemas Unix/Linux
     const isWindows = process.platform === 'win32';
@@ -437,8 +439,8 @@ export async function PUT(request: NextRequest) {
       try {
         await unlink(assemblyPath);
         await unlink(executablePath);
-      } catch (e) {
-        console.log('Error limpiando archivos:', e);
+      } catch (cleanupError) {
+        console.log('Error limpiando archivos:', cleanupError);
       }
       
       return NextResponse.json({
@@ -448,28 +450,32 @@ export async function PUT(request: NextRequest) {
         compileOutput: compileStdout
       });
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Limpiar archivos en caso de error
       try {
         await unlink(assemblyPath);
         await unlink(executablePath);
-      } catch (e) {
+      } catch {
         // Ignorar errores de limpieza
       }
       
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      
       return NextResponse.json({
         success: false,
-        error: `Error ejecutando assembly: ${error.message}`,
+        error: `Error ejecutando assembly: ${errorMessage}`,
         output: null
       }, { status: 500 });
     }
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error en ejecución de assembly:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     
     return NextResponse.json({
       success: false,
-      error: error.message || 'Error desconocido',
+      error: errorMessage,
       output: null
     }, { status: 500 });
   }
