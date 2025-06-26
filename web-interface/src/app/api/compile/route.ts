@@ -5,6 +5,97 @@ import { writeFile, readFile, mkdir } from 'fs/promises'
 import path from 'path'
 
 const execAsync = promisify(exec)
+function formatOutput(stdout: string, mode: string): string {
+  const lines = stdout.split('\n')
+  
+  if (mode === 'eval') {
+    let inExecutionSection = false
+    let executionOutput: string[] = []
+    
+    for (const line of lines) {
+      if (line.includes('EJECUTAR:')) {
+        inExecutionSection = true
+        continue
+      }
+      
+      if (inExecutionSection) {
+        if (line.includes('GENERANDO CODIGO ASSEMBLY:') || line.startsWith('Generando codigo ensamblador')) {
+          break
+        }
+        if (line.trim() && !line.includes('TOKEN(') && !line.includes('Iniciando') && !line.includes('exitoso')) {
+          executionOutput.push(line.trim())
+        }
+      }
+    }
+    
+    if (executionOutput.length > 0) {
+      const result = [
+        '🎯 RESULTADO DE LA EJECUCIÓN',
+        '━'.repeat(40),
+        ...executionOutput,
+        '━'.repeat(40),
+        '✅ Programa ejecutado exitosamente'
+      ]
+      return result.join('\n')
+    } else {
+      return [
+        '🎯 RESULTADO DE LA EJECUCIÓN',
+        '━'.repeat(40),
+        '✅ Programa ejecutado correctamente (sin salida)',
+        '━'.repeat(40)
+      ].join('\n')
+    }
+  } else if (mode === 'assembly') {
+    let inExecutionSection = false
+    let executionOutput: string[] = []
+    let assemblyGenerated = false
+    
+    for (const line of lines) {
+      if (line.includes('EJECUTAR:')) {
+        inExecutionSection = true
+        continue
+      }
+      
+      if (line.includes('GENERANDO CODIGO ASSEMBLY:')) {
+        inExecutionSection = false
+        assemblyGenerated = true
+        continue
+      }
+      
+      if (inExecutionSection && line.trim() && !line.includes('TOKEN(') && !line.includes('Iniciando') && !line.includes('exitoso')) {
+        executionOutput.push(line.trim())
+      }
+      
+      if (line.includes('Codigo assembly generado exitosamente')) {
+        assemblyGenerated = true
+      }
+    }
+    
+    const result = []
+    
+    result.push('🎯 RESULTADO DE LA EJECUCIÓN')
+    result.push('━'.repeat(40))
+    if (executionOutput.length > 0) {
+      result.push(...executionOutput)
+    } else {
+      result.push('✅ Programa ejecutado correctamente (sin salida)')
+    }
+    result.push('━'.repeat(40))
+    result.push('')
+    
+    if (assemblyGenerated) {
+      result.push('⚙️ GENERACIÓN DE CÓDIGO ASSEMBLY')
+      result.push('━'.repeat(40))
+      result.push('✅ Código assembly generado exitosamente')
+      result.push('📄 Archivo disponible para descarga')
+      result.push('━'.repeat(40))
+    }
+    
+    return result.join('\n')
+  }
+  
+  return stdout
+}
 
 export async function POST(request: NextRequest) {
   let command = ''
@@ -32,21 +123,37 @@ export async function POST(request: NextRequest) {
     await mkdir(path.dirname(inputPath), { recursive: true })
     await writeFile(inputPath, code, 'utf-8')
 
-    // Determinar qué pasos ejecutar según el modo
-    const mainExePath = path.join(compilerDir, 'main.exe')
+    // Determinar el nombre del ejecutable según el sistema operativo
+    const isWindows = process.platform === 'win32'
+    const mainExeName = isWindows ? 'main.exe' : 'main'
+    const mainExePath = path.join(compilerDir, mainExeName)
     const inputRelativePath = `inputs/web/${filename}`
     
-    switch (mode) {
-      case 'eval':
-        // Solo ejecutar hasta eval visitor (pasos 1-4)
-        command = `"${mainExePath}" "${inputRelativePath}"`
-        break
-      case 'assembly':
-        // Ejecutar todos los pasos incluyendo generación de assembly
-        command = `"${mainExePath}" "${inputRelativePath}"`
-        break
-      default:
-        command = `"${mainExePath}" "${inputRelativePath}"`
+    // Verificar que el ejecutable existe
+    try {
+      await readFile(mainExePath)
+    } catch (error) {
+      const compileCmd = isWindows 
+        ? 'python make.py' 
+        : 'g++ -g main.cpp scanner.cpp parser.cpp token.cpp exp.cpp visitor.cpp codegen.cpp -o main && chmod +x main'
+      
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `No se encontró el ejecutable ${mainExeName}. Asegúrate de compilar el proyecto primero.`,
+          details: `Buscar en: ${mainExePath}`,
+          compileInstructions: `Comando de compilación: ${compileCmd}`
+        },
+        { status: 404 }
+      )
+    }
+    
+    // Construir el comando según el sistema operativo
+    if (isWindows) {
+      command = `"${mainExePath}" "${inputRelativePath}"`
+    } else {
+      // En Linux, usar ruta relativa y asegurar permisos
+      command = `./main "${inputRelativePath}"`
     }
 
     // Ejecutar el compilador
@@ -68,15 +175,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Limpiar el archivo temporal (opcional)
-    // await unlink(inputPath)
+    const formattedOutput = formatOutput(stdout, mode)
 
     return NextResponse.json({
       success: true,
-      output: stdout,
+      output: formattedOutput,
       errors: stderr,
       assembly: assemblyCode,
-      filename: filename.replace('.txt', '.s')
+      filename: filename.replace('.txt', '.s'),
+      rawOutput: stdout
     })
 
   } catch (error: any) {
@@ -93,8 +200,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (error.code === 'ENOENT') {
+      const expectedExe = process.platform === 'win32' ? 'main.exe' : 'main'
+      const compileCmd = process.platform === 'win32' 
+        ? 'python make.py' 
+        : 'g++ -g main.cpp scanner.cpp parser.cpp token.cpp exp.cpp visitor.cpp codegen.cpp -o main && chmod +x main'
+      
       return NextResponse.json(
-        { success: false, error: 'No se encontró el archivo main.exe. Asegúrate de que el compilador esté compilado.' },
+        { 
+          success: false, 
+          error: `No se encontró el ejecutable ${expectedExe}. Asegúrate de compilar el proyecto primero.`,
+          details: `Comando de compilación: ${compileCmd}`
+        },
         { status: 404 }
       )
     }

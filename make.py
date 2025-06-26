@@ -2,6 +2,12 @@ import subprocess
 import os
 import sys
 import glob
+import platform
+
+# Detectar sistema operativo
+IS_WINDOWS = platform.system() == 'Windows'
+EXECUTABLE_NAME = "main.exe" if IS_WINDOWS else "main"
+COMPILER_CMD = "g++"
 
 # Archivos fuente
 source_files = [
@@ -33,7 +39,7 @@ execution_options = {
 def compile_project():
     """Compila el proyecto con mejor manejo de errores"""
     print("🔨 Compilando proyecto...")
-    compile_cmd = ["g++", "-g"] + source_files + ["-o", "main.exe"]
+    compile_cmd = [COMPILER_CMD, "-g"] + source_files + ["-o", EXECUTABLE_NAME]
     
     try:
         print(f"Comando: {' '.join(compile_cmd)}")
@@ -50,9 +56,14 @@ def compile_project():
             return False
         
         # Verificar que el ejecutable se creó
-        if not os.path.exists("main.exe"):
-            print("❌ Error: main.exe no se creó correctamente")
+        if not os.path.exists(EXECUTABLE_NAME):
+            print(f"❌ Error: {EXECUTABLE_NAME} no se creó correctamente")
             return False
+        
+        # En Linux, dar permisos de ejecución
+        if not IS_WINDOWS:
+            os.chmod(EXECUTABLE_NAME, 0o755)
+            print(f"✅ Permisos de ejecución asignados a {EXECUTABLE_NAME}")
         
         print("✅ Compilación exitosa.\n")
         return True
@@ -61,7 +72,7 @@ def compile_project():
         print("❌ Timeout en compilación (más de 60 segundos)")
         return False
     except FileNotFoundError:
-        print("❌ Error: g++ no encontrado")
+        print(f"❌ Error: {COMPILER_CMD} no encontrado")
         print("💡 Asegúrate de tener g++ instalado y en el PATH")
         return False
     except Exception as e:
@@ -139,12 +150,15 @@ def execute_file(filepath, steps_to_run=None):
         return
     
     try:
-        # Ejecutar sin timeout para evitar problemas
-        result = subprocess.run(["main.exe", filepath], capture_output=False)
+        # Usar el nombre de ejecutable correcto según el OS
+        exec_cmd = [f"./{EXECUTABLE_NAME}" if not IS_WINDOWS else EXECUTABLE_NAME, filepath]
+        result = subprocess.run(exec_cmd, capture_output=False)
         if result.returncode != 0:
             print(f"Error ejecutando {filepath} (código: {result.returncode})")
     except FileNotFoundError:
-        print(f"❌ Error: main.exe no encontrado. Ejecuta compilación primero.")
+        print(f"❌ Error: {EXECUTABLE_NAME} no encontrado. Ejecuta compilación primero.")
+        if not IS_WINDOWS:
+            print("💡 En Linux: Compila con 'g++ -g *.cpp -o main'")
     except KeyboardInterrupt:
         print(f"\n❌ Interrumpido por el usuario: {filepath}")
     except Exception as e:
@@ -235,7 +249,8 @@ def parse_steps(steps_str):
 
 def show_help():
     """Muestra la ayuda del programa"""
-    print("USO: python make.py [opciones] [categoría|all]")
+    os_info = "Windows" if IS_WINDOWS else "Linux/Unix"
+    print(f"USO: python make.py [opciones] [categoría|all] (Detectado: {os_info})")
     print("\nOpciones:")
     print("  --no-compile          - No compilar antes de ejecutar")
     print("  --steps=1,2,3         - Mostrar solo los pasos especificados")
@@ -261,11 +276,17 @@ def show_help():
     print("  python make.py --clean                # Limpiar todos los .s")
     print("  python make.py --clean=vars           # Limpiar .s de vars")
     
-    print("\n🐧 Para usar los archivos .s generados en Ubuntu:")
-    print("  1. python make.py --steps=5 all      # Generar archivos .s")
-    print("  2. Copiar archivos .s a Ubuntu")
-    print("  3. En Ubuntu: gcc archivo.s -o ejecutable")
-    print("  4. En Ubuntu: ./ejecutable")
+    if IS_WINDOWS:
+        print("\n🐧 Para usar los archivos .s generados en Ubuntu:")
+        print("  1. python make.py --steps=5 all      # Generar archivos .s")
+        print("  2. Copiar archivos .s a Ubuntu")
+        print("  3. En Ubuntu: gcc archivo.s -o ejecutable")
+        print("  4. En Ubuntu: ./ejecutable")
+    else:
+        print("\n🐧 Compilación y ejecución en Linux:")
+        print("  1. python make.py --steps=5 all      # Generar archivos .s")
+        print("  2. gcc archivo.s -o ejecutable       # Compilar assembly")
+        print("  3. ./ejecutable                      # Ejecutar")
 
 def main():
     args = sys.argv[1:]
