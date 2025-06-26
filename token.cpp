@@ -66,6 +66,10 @@ std::ostream& operator << ( std::ostream& outs, const Token & tok )
         case Token::FOR: outs << "TOKEN(FOR)"; break;
         case Token::IN: outs << "TOKEN(IN)"; break;
 
+        case Token::UNTIL: outs << "TOKEN(UNTIL)"; break;
+        case Token::DOWNTO: outs << "TOKEN(DOWNTO)"; break;
+        case Token::STEP: outs << "TOKEN(STEP)"; break;
+
         case Token::TRUE : outs << "TOKEN(TRUE)"; break;
         case Token::FALSE : outs << "TOKEN(FALSE)"; break;
 

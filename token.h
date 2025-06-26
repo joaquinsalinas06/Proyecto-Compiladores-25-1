@@ -14,6 +14,7 @@ public:
         IF, LLI, LLD, ELSE_IF, ELSE, // IfStatement
         WHILE, DO, // WhileStatement
         FOR, IN, // in: para rangos en kotlin
+        UNTIL, DOWNTO, STEP, // operadores de rango en kotlin
         FALSE, TRUE, // booleanos
         INT, FLOAT, BOOLEAN, UNIT, // enteros, floats, booleanos y unit (void)
         NOT,

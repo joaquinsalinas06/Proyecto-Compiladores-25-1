@@ -161,8 +161,26 @@ int PrintVisitor::visit(IdentifierExp* exp) {
 
 int PrintVisitor::visit(RangeExp* exp) {
     exp->start->accept(this);
-    cout << "..";
+    
+    switch(exp->type) {
+        case RANGE_DOTDOT:
+            cout << "..";
+            break;
+        case RANGE_UNTIL:
+            cout << " until ";
+            break;
+        case RANGE_DOWNTO:
+            cout << " downTo ";
+            break;
+    }
+    
     exp->end->accept(this);
+    
+    if (exp->step != nullptr) {
+        cout << " step ";
+        exp->step->accept(this);
+    }
+    
     return 0;
 }
 
@@ -746,12 +764,26 @@ void EVALVisitor::visit(ForStatement* stm) {
         range->end->accept(this);
         int end_val = (lastType == 2) ? (int)lastFloat : lastInt;
         
+        int step_val = 1;
+        if (range->step != nullptr) { //Si tenemos un step, lo recuperamos y vemos su tipo, si es float lo convertimos a entero (no se puede ir a 1.4 xd )
+            range->step->accept(this);
+            step_val = (lastType == 2) ? (int)lastFloat : lastInt;
+        }
+        
         string var_type = stm->type.empty() ? "Int" : stm->type;
         env.add_level();
         
-        for (int i = start_val; i <= end_val; i++) {
-            env.add_var(stm->id, i, var_type);
-            stm->body->accept(this);
+        if (range->type == RANGE_DOTDOT || range->type == RANGE_UNTIL) { //Si vamos hacia arriba, tenemos el dotdot y el until
+            int limit = (range->type == RANGE_DOTDOT) ? end_val : end_val - 1;
+            for (int i = start_val; i <= limit; i += step_val) {
+                env.add_var(stm->id, i, var_type);
+                stm->body->accept(this);
+            }
+        } else if (range->type == RANGE_DOWNTO) { //El downto va hacia abajo
+            for (int i = start_val; i >= end_val; i -= step_val) {
+                env.add_var(stm->id, i, var_type);
+                stm->body->accept(this);
+            }
         }
         
         env.remove_level();

@@ -551,6 +551,15 @@ void GenCodeVisitor::visit(ForStatement* stm) {
         int endOffset = offset;
         out << "    movq %rax, " << endOffset << "(%rbp)" << endl;
         
+        int stepValue = 1;
+        int stepOffset = 0;
+        if (range->step != nullptr) { //Si es que estamos definiendo un step distinto de 1
+            range->step->accept(this); //Genera el valor de ese step
+            offset -= 8; 
+            stepOffset = offset;
+            out << "    movq %rax, " << stepOffset << "(%rbp)" << endl; //guardalo en memoria
+        }
+        
         // Variable del loop
         if (memoria.find(stm->id) == memoria.end()) {
             offset -= 8;
@@ -566,13 +575,40 @@ void GenCodeVisitor::visit(ForStatement* stm) {
         out << "    movq " << memoria[stm->id] << "(%rbp), %rax" << endl;
         out << "    movq " << endOffset << "(%rbp), %rcx" << endl;
         out << "    cmpq %rcx, %rax" << endl;
-        out << "    jg .for_end_" << labelId << endl;  // Si i > end, salir
         
+        if (range->type == RANGE_DOTDOT) {
+            //i <= end
+            out << "    jg .for_end_" << labelId << endl;
+        } else if (range->type == RANGE_UNTIL) {
+            //i < end
+            out << "    jge .for_end_" << labelId << endl;
+        } else if (range->type == RANGE_DOWNTO) {
+            // i >= end
+            out << "    jl .for_end_" << labelId << endl;
+        }
+        
+        // Cuerpo del loop
         stm->body->accept(this);
         
-        // Incrementar i
         out << "    movq " << memoria[stm->id] << "(%rbp), %rax" << endl;
-        out << "    incq %rax" << endl;
+        
+        if (range->type == RANGE_DOWNTO) {
+            // Para downTo: decrementar
+            if (range->step != nullptr) { //si es que tomamos un step distinto a uno, lo recuperamos del stepOffSet
+                out << "    movq " << stepOffset << "(%rbp), %rcx" << endl;
+                out << "    subq %rcx, %rax" << endl;
+            } else {
+                out << "    decq %rax" << endl;  //Sino reducimos en 1 ocmo ciempre
+            }
+        } else {
+            if (range->step != nullptr) { //Misma logica, si es que tenemos un step que no es 1, lo recuperamos, sino añadimos 1
+                out << "    movq " << stepOffset << "(%rbp), %rcx" << endl;
+                out << "    addq %rcx, %rax" << endl;
+            } else {
+                out << "    incq %rax" << endl;
+            }
+        }
+        
         out << "    movq %rax, " << memoria[stm->id] << "(%rbp)" << endl;
         
         out << "    jmp .for_start_" << labelId << endl;
@@ -802,6 +838,9 @@ void GenCodeVisitor::collectConstantsFromExp(Exp* exp) { // Recorre la expresió
     } else if (RangeExp* range = dynamic_cast<RangeExp*>(exp)) {
         collectConstantsFromExp(range->start);
         collectConstantsFromExp(range->end);
+        if (range->step != nullptr) {
+            collectConstantsFromExp(range->step);
+        }
     }
 }
 
@@ -847,6 +886,9 @@ void GenCodeVisitor::collectConstantsFromStmt(Stm* stmt) { // Recorre una senten
         if (RangeExp* range = dynamic_cast<RangeExp*>(forStmt->range)) {
             collectConstantsFromExp(range->start);
             collectConstantsFromExp(range->end);
+            if (range->step != nullptr) {
+                collectConstantsFromExp(range->step);
+            }
         }
         collectConstantsFromBody(forStmt->body);
     } else if (FCallStm* fcall = dynamic_cast<FCallStm*>(stmt)) {

@@ -491,12 +491,30 @@ Exp* Parser::parseFactor() {
 Exp* Parser::parseRangeExpression() {
     Exp* start = parseAExp(); // Un rango puede empezar con cualquier expresión
     
+    RangeType rangeType = RANGE_DOTDOT;
+    Exp* end = nullptr;
+    Exp* step = nullptr;
+    
     if (match(Token::DOTDOT)) {
-        Exp* end = parseAExp(); // El final del rango también
-        return new RangeExp(start, end);
+        rangeType = RANGE_DOTDOT;
+        end = parseAExp();
+    } else if (match(Token::UNTIL)) {
+        rangeType = RANGE_UNTIL;
+        end = parseAExp();
+    } else if (match(Token::DOWNTO)) {
+        rangeType = RANGE_DOWNTO;
+        end = parseAExp();
+    } else {
+        // Si no hay operador de rango, solo devolver la expresión inicial
+        return start;
     }
     
-    return start;
+    // Verificar si hay un "step"
+    if (match(Token::STEP)) {
+        step = parseAExp();
+    }
+    
+    return new RangeExp(start, end, rangeType, step);
 }
 FunDec* Parser::parseFunDec() {
     if (!match(Token::FUN)) {

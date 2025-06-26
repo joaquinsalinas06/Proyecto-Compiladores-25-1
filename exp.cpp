@@ -84,8 +84,8 @@ ForStatement::ForStatement(std::string id, std::string type, Exp* range, Body* b
     
 ForStatement::~ForStatement() { delete range; delete body; }
 
-RangeExp::RangeExp(Exp* start, Exp* end): start(start), end(end) {}
-RangeExp::~RangeExp() { delete start; delete end; }
+RangeExp::RangeExp(Exp* start, Exp* end, RangeType type, Exp* step): start(start), end(end), type(type), step(step) {}
+RangeExp::~RangeExp() { delete start; delete end; if (step) delete step; }
 
 VarDec::VarDec(string id, string t, Exp* val): id(id), type(t), value(val) {}
 VarDec::~VarDec() { delete value; }
