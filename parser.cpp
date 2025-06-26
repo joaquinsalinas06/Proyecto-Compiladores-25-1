@@ -67,6 +67,8 @@ VarDec* Parser::parseVarDec() {
                 type = "Boolean";
             } else if (match(Token::FLOAT)) {
                 type = "Float";
+            } else if (match(Token::UNIT)) {
+                type = "Unit";
             } else {
                 cout << "Error: tipo de variable desconocido." << endl;
                 exit(1);
@@ -534,6 +536,8 @@ FunDec* Parser::parseFunDec() {
             paramType = "Boolean";
         } else if (match(Token::FLOAT)) {
             paramType = "Float";
+        } else if (match(Token::UNIT)) {
+            paramType = "Unit";
         } else {
             cout << "Error: tipo de parámetro desconocido." << endl;
             exit(1);
@@ -560,6 +564,8 @@ FunDec* Parser::parseFunDec() {
                 paramType = "Boolean";
             } else if (match(Token::FLOAT)) {
                 paramType = "Float";
+            } else if (match(Token::UNIT)) {
+                paramType = "Unit";
             } else {
                 cout << "Error: tipo de parámetro desconocido." << endl;
                 exit(1);
@@ -583,6 +589,8 @@ FunDec* Parser::parseFunDec() {
             returnType = "Boolean";
         } else if (match(Token::FLOAT)) {
             returnType = "Float";
+        } else if (match(Token::UNIT)) {
+            returnType = "Unit";
         } else {
             cout << "Error: tipo de retorno desconocido." << endl;
             exit(1);

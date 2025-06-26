@@ -15,7 +15,7 @@ public:
         WHILE, DO, // WhileStatement
         FOR, IN, // in: para rangos en kotlin
         FALSE, TRUE, // booleanos
-        INT, FLOAT, BOOLEAN, // enteros, floats y booleanos
+        INT, FLOAT, BOOLEAN, UNIT, // enteros, floats, booleanos y unit (void)
         NOT,
         FUN, RETURN // Funciones y retorno
     };

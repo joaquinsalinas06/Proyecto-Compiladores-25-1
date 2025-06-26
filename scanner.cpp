@@ -74,6 +74,8 @@ Token* Scanner::nextToken() {
             token = new Token(Token::FLOAT, word, 0, word.length());
         } else if (word == "Boolean") {
             token = new Token(Token::BOOLEAN, word, 0, word.length());
+        } else if (word == "Unit") {
+            token = new Token(Token::UNIT, word, 0, word.length());
         } else if (word == "print") {
             token = new Token(Token::PRINT, word, 0, word.length());
         } else if (word == "println") {
