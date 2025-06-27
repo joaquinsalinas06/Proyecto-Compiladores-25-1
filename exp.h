@@ -15,6 +15,18 @@ enum BinaryOp { AND_OP, OR_OP, PLUS_OP, MINUS_OP, MUL_OP, DIV_OP, LT_OP, LE_OP, 
 enum UnaryOp { NOT_OP, UMINUS_OP };
 enum RangeType { RANGE_DOTDOT, RANGE_UNTIL, RANGE_DOWNTO };
 
+enum Type { 
+    UNDEFINED_TYPE = 0,
+    INT_TYPE = 1,
+    FLOAT_TYPE = 2, 
+    BOOLEAN_TYPE = 3,
+    UNIT_TYPE = 4,
+    RANGE_TYPE = 5
+};
+
+string typeToString(Type type);
+Type stringToType(const string& typeStr);
+
 class Body;
 
 // // Clase abstracta para todas la expresiones

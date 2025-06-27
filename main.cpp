@@ -5,6 +5,7 @@
 #include "parser.h"
 #include "visitor.h"
 #include "codegen.h"
+#include "typechecker.h"
 
 using namespace std;
 
@@ -39,12 +40,16 @@ int main(int argc, const char* argv[]) {
     try {
         Program* program = parser.parseProgram();
         cout << "Parsing exitoso" << endl << endl;
+        
         cout << "Iniciando Visitor:" << endl;
         PrintVisitor printVisitor;
         EVALVisitor evalVisitor;
-        // TypeVisitor typeVisitor;
-        // cout << "VERIFICANDO:" << endl;
-        // typeVisitor.check(program);
+        TypeChecker typeChecker;
+        
+        cout << "VERIFICANDO TIPOS:" << endl;
+        typeChecker.check(program);
+        cout << "Verificación de tipos exitosa" << endl;
+        
         cout << endl;
         cout << "IMPRIMIR:" << endl;
         printVisitor.imprimir(program);        cout  << endl;
