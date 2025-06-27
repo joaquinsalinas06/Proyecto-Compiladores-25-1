@@ -742,7 +742,7 @@ int EVALVisitor::visit(ArrayExp* exp) {
             vals.push_back(lastInt);
         }
         // El almacenamiento real se hace en la declaración de variable (VarDec)
-        lastType = 5; // 5 = Array<Int>
+        lastType = 5; // 5 = arrayOf<Int>
         lastArrayInt = vals;
         return lastType;
     } else if (exp->type == "Float") {
@@ -751,7 +751,7 @@ int EVALVisitor::visit(ArrayExp* exp) {
             e->accept(this);
             vals.push_back(lastFloat);
         }
-        lastType = 6; // 6 = Array<Float>
+        lastType = 6; // 6 = arrayOf<Float>
         lastArrayFloat = vals;
         return lastType;
     }
@@ -765,23 +765,23 @@ int EVALVisitor::visit(ArrayAccessExp* exp) {
     auto idExp = dynamic_cast<IdentifierExp*>(exp->array);
     if (idExp) {
         std::string arrType = env.lookup_type(idExp->name);
-        if (arrType == "Array<Int>") {
+        if (arrType == "arrayOf<Int>") {
             auto& arr = env.lookup_array_int(idExp->name);
             if (idx >= 0 && idx < (int)arr.size()) {
                 lastType = 1;
                 lastInt = arr[idx];
                 return lastType;
             } else {
-                std::cerr << "Error: Índice fuera de rango en Array<Int> '" << idExp->name << "' (idx=" << idx << ")\n";
+                std::cerr << "Error: Índice fuera de rango en arrayOf<Int> '" << idExp->name << "' (idx=" << idx << ")\n";
             }
-        } else if (arrType == "Array<Float>") {
+        } else if (arrType == "arrayOf<Float>") {
             auto& arr = env.lookup_array_float(idExp->name);
             if (idx >= 0 && idx < (int)arr.size()) {
                 lastType = 2;
                 lastFloat = arr[idx];
                 return lastType;
             } else {
-                std::cerr << "Error: Índice fuera de rango en Array<Float> '" << idExp->name << "' (idx=" << idx << ")\n";
+                std::cerr << "Error: Índice fuera de rango en arrayOf<Float> '" << idExp->name << "' (idx=" << idx << ")\n";
             }
         } else {
             std::cerr << "Error: Tipo de array no soportado para acceso: '" << arrType << "'\n";
@@ -796,7 +796,7 @@ int EVALVisitor::visit(ArrayMethodExp* exp) {
     auto idExp = dynamic_cast<IdentifierExp*>(exp->array);
     if (!idExp) return 0;
     std::string arrType = env.lookup_type(idExp->name);
-    if (arrType == "Array<Int>") {
+    if (arrType == "arrayOf<Int>") {
         auto& arr = env.lookup_array_int(idExp->name);
         switch (exp->method) {
             case ArrayMethodType::SIZE:
@@ -809,7 +809,7 @@ int EVALVisitor::visit(ArrayMethodExp* exp) {
                 for (int i = 0; i < arr.size(); ++i) lastArrayInt.push_back(i);
                 return lastType;
         }
-    } else if (arrType == "Array<Float>") {
+    } else if (arrType == "arrayOf<Float>") {
         auto& arr = env.lookup_array_float(idExp->name);
         switch (exp->method) {
             case ArrayMethodType::SIZE:
@@ -836,9 +836,9 @@ void EVALVisitor::visit(VarDec* stm) {
             env.add_var(stm->id, (evaluated_type == 1) ? static_cast<float>(lastInt) : lastFloat, declared_type);
         } else if (declared_type == "Boolean") {
             env.add_var(stm->id, (bool)lastInt, declared_type);
-        } else if (declared_type == "Array<Int>") {
+        } else if (declared_type == "arrayOf<Int>") {
             env.add_array(stm->id, lastArrayInt);
-        } else if (declared_type == "Array<Float>") {
+        } else if (declared_type == "arrayOf<Float>") {
             env.add_array(stm->id, lastArrayFloat);
         }
     } else {

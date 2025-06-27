@@ -77,8 +77,8 @@ VarDec* Parser::parseVarDec() {
         if (type.empty() && val != nullptr) {
             ArrayExp* arr = dynamic_cast<ArrayExp*>(val);
             if (arr) {
-                if (arr->type == "Int") type = "Array<Int>";
-                else if (arr->type == "Float") type = "Array<Float>";
+                if (arr->type == "Int") type = "arrayOf<Int>";
+                else if (arr->type == "Float") type = "arrayOf<Float>";
             }
         }
         vd = new VarDec(id, type, val);
@@ -474,113 +474,6 @@ Exp* Parser::parseArrayAccess(Exp* array) {
     }
     return new ArrayAccessExp(array, index);
 }
-
-// Exp* Parser::parseFactor() {
-//     // Array literal
-//     if (match(Token::ARRAY_OF)) {
-//         if (!match(Token::LT)) {
-//             cout << "Error: Se esperaba '<' después de 'arrayOf'." << endl;
-//             exit(1);
-//         }
-//         if (!match(Token::TYPE)) {
-//             cout << "Error: Se esperaba un tipo (Int, Float, Boolean) dentro de '<>'." << endl;
-//             exit(1);
-//         }
-//         string array_type = previous->text; // Capturamos el tipo: "Int", "Float", etc.
-
-//         if (!match(Token::GT)) {
-//             cout << "Error: Se esperaba '>' después del tipo." << endl;
-//             exit(1);
-//         }
-//         if (!match(Token::PI)) {
-//             cout << "Error: Se esperaba '(' después de 'arrayOf<Type>'." << endl;
-//             exit(1);
-//         }
-
-//         vector<Exp*> elements;
-//         if (!check(Token::PD)) { // Si no es un array vacío
-//             do {
-//                 elements.push_back(parseAExp()); // Parseamos cada expresión
-//             } while (match(Token::COMA));
-//         }
-
-//         if (!match(Token::PD)) {
-//             cout << "Error: Se esperaba ')' para cerrar la lista de elementos del array." << endl;
-//             exit(1);
-//         }
-
-//         return new ArrayExp(array_type, elements);
-//     }
-
-
-
-
-//     // Paréntesis
-//     if (match(Token::PI)) {
-//         Exp* e = parseAExp();
-//         if (!match(Token::PD)) {
-//             cout << "Error: se esperaba ')'" << endl;
-//             exit(1);
-//         }
-//         return e;
-//     }
-
-//     // Literales numéricos
-//     if (match(Token::NUM)) {
-//         int value = stoi(previous->text);
-//         return new NumberExp(value);
-//     }
-//     if (match(Token::DECIMAL)) {
-//         float value = stof(previous->text);
-//         return new DecimalExp(value);
-//     }
-
-//     // Booleanos
-//     if (match(Token::TRUE)) return new BoolExp(true);
-//     if (match(Token::FALSE)) return new BoolExp(false);
-
-//     // Identificadores o llamada a función
-//     if (match(Token::ID)) {
-//         string name = previous->text;
-//         if (check(Token::PI)) {
-//             // Llamada a función
-//             advance();
-//             list<Exp*> args;
-//             if (!check(Token::PD)) {
-//                 args.push_back(parseAExp());
-//                 while (match(Token::COMA)) {
-//                     args.push_back(parseAExp());
-//                 }
-//             }
-//             if (!match(Token::PD)) {
-//                 cout << "Error: se esperaba ')' en llamada a función." << endl;
-//                 exit(1);
-//             }
-//             return new FCallExp(name, args);
-//         } else {
-//             // Solo identificador
-//             Exp* factor = new IdentifierExp(name);
-//             // Métodos de array
-//             if (match(Token::DOT)) {
-//                 if (match(Token::INDICES)) {
-//                     return new ArrayMethodExp(factor, ArrayMethodType::INDICES);
-//                 } else if (match(Token::SIZE)) {
-//                     return new ArrayMethodExp(factor, ArrayMethodType::SIZE);
-//                 }
-//             }
-//             // Acceso a array
-//             if (check(Token::CI)) {
-//                 return parseArrayAccess(factor);
-//             }
-//             return factor;
-//         }
-//     }
-
-//     cout << "Error: factor inesperado: " << *current << endl;
-//     exit(1);
-//     return nullptr;
-// }
-
 
 Exp* Parser::parseFactor() {
     // Array literal

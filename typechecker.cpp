@@ -16,6 +16,8 @@ using namespace std;
 // UNIT_TYPE = 4
 // RANGE_TYPE = 5
 
+TypeChecker::TypeChecker() : retorno("") {}
+
 void TypeChecker::check(Program* program){
     env.add_level();
     program->accept(this);
@@ -327,17 +329,19 @@ void TypeChecker::visit(ForStatement* stm) {
 }
 
 void TypeChecker::visit(VarDec* stm) {
-    if (stm->type != "Int" && stm->type != "Float" && stm->type != "Boolean") {
-        cout << "Error: Tipo no válido para variable: " << stm->type << endl;
+    // Ahora acepto arrayOf<Int> y arrayOf<Float> como tipos válidos
+    if (stm->type != "Int" && stm->type != "Float" && stm->type != "Boolean" && stm->type != "arrayOf<Int>" && stm->type != "arrayOf<Float>" && stm->type != "Unit") {
+        cout << "Error: Tipo de variable desconocido o no válido: '" << stm->type << "'\nTipos válidos: Int, Float, Boolean, arrayOf<Int>, arrayOf<Float>, Unit" << endl;
         exit(1);
     }
 
     if (stm->value != nullptr) { //Si es que hay algun valor que se le esta asignando, hay que verificar que sea compatible
         int init_type = stm->value->accept(this);
-        
         if (stm->type == "Int" && init_type == INT_TYPE) { 
         } else if (stm->type == "Float" && (init_type == INT_TYPE || init_type == FLOAT_TYPE)) {
         } else if (stm->type == "Boolean" && init_type == BOOLEAN_TYPE) {
+        } else if (stm->type == "arrayOf<Int>" && init_type == 5) {
+        } else if (stm->type == "arrayOf<Float>" && init_type == 6) {
         } else {
             cout << "Error de tipos: No se puede inicializar variable " << stm->id 
                  << " de tipo " << stm->type << " con valor de tipo ";
@@ -345,6 +349,8 @@ void TypeChecker::visit(VarDec* stm) {
                 case INT_TYPE: cout << "Int"; break;
                 case FLOAT_TYPE: cout << "Float"; break;
                 case BOOLEAN_TYPE: cout << "Boolean"; break;
+                case 5: cout << "arrayOf<Int>"; break;
+                case 6: cout << "arrayOf<Float>"; break;
                 default: cout << "desconocido"; break;
             }
             cout << endl;
@@ -353,7 +359,13 @@ void TypeChecker::visit(VarDec* stm) {
     }
     
     // Añadir la variable al entorno
-    env.add_var(stm->id, stm->type);
+    if (stm->type == "arrayOf<Int>") {
+        env.add_array(stm->id, "arrayOf<Int>");
+    } else if (stm->type == "arrayOf<Float>") {
+        env.add_array(stm->id, "arrayOf<Float>");
+    } else {
+        env.add_var(stm->id, stm->type);
+    }
 }
 
 void TypeChecker::visit(VarDecList* stm) {
@@ -553,4 +565,46 @@ void TypeChecker::visit(ReturnStatement* retstm) {
             exit(1);
         }
     }
+}
+
+int TypeChecker::visit(ArrayExp* exp) {
+    // Si llego aquí, estoy creando un array. Checo el tipo de los elementos.
+    bool allInt = true, allFloat = true;
+    for (auto e : exp->elements) {
+        int t = e->accept(this);
+        if (t != 1) allInt = false;
+        if (t != 2) allFloat = false;
+    }
+    if (allInt) return 5; // arrayOf<Int>
+    if (allFloat) return 6; // arrayOf<Float>
+    // Si hay mezcla, lo marco como error
+    std::cout << "Error: Los arrays deben ser homogéneos (todo Int o todo Float)" << std::endl;
+    exit(1);
+}
+
+int TypeChecker::visit(ArrayAccessExp* exp) {
+    // Acceso tipo arr[i], reviso que arr sea array y i sea int
+    int arrType = exp->array->accept(this);
+    int idxType = exp->index->accept(this);
+    if (idxType != 1) {
+        std::cout << "Error: El índice de un array debe ser Int" << std::endl;
+        exit(1);
+    }
+    if (arrType == 5) return 1; // arrayOf<Int> -> Int
+    if (arrType == 6) return 2; // arrayOf<Float> -> Float
+    std::cout << "Error: Solo puedo indexar arrays de Int o Float" << std::endl;
+    exit(1);
+}
+
+int TypeChecker::visit(ArrayMethodExp* exp) {
+    // Para .size y .indices, devuelvo Int o arrayOf<Int>
+    int arrType = exp->array->accept(this);
+    if (arrType != 5 && arrType != 6) {
+        std::cout << "Error: Solo puedo usar métodos de array en arrays" << std::endl;
+        exit(1);
+    }
+    if (exp->method == ArrayMethodType::SIZE) return 1; // .size -> Int
+    if (exp->method == ArrayMethodType::INDICES) return 5; // .indices -> arrayOf<Int>
+    std::cout << "Error: Método de array no soportado" << std::endl;
+    exit(1);
 }

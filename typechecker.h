@@ -15,7 +15,7 @@ class TypeChecker : public Visitor {
     
 public:
     
-    TypeChecker() : retorno("") {}
+    TypeChecker();
     
     void check(Program* program);
     
@@ -28,6 +28,9 @@ public:
     int visit(IdentifierExp* exp) override;
     int visit(RangeExp* exp) override;
     int visit(FCallExp* fcall) override;
+    int visit(ArrayExp* exp) override;
+    int visit(ArrayAccessExp* exp) override;
+    int visit(ArrayMethodExp* exp) override;
     
     // Métodos visit para statements
     void visit(AssignStatement* stm) override;

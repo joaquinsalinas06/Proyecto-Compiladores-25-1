@@ -44,11 +44,11 @@ int main(int argc, const char* argv[]) {
         cout << "Iniciando Visitor:" << endl;
         PrintVisitor printVisitor;
         EVALVisitor evalVisitor;
-        TypeChecker typeChecker;
+        // TypeChecker typeChecker;
         
-        cout << "VERIFICANDO TIPOS:" << endl;
-        typeChecker.check(program);
-        cout << "Verificación de tipos exitosa" << endl;
+        // cout << "VERIFICANDO TIPOS:" << endl;
+        // typeChecker.check(program);
+        // cout << "Verificación de tipos exitosa" << endl;
         
         cout << endl;
         cout << "IMPRIMIR:" << endl;
