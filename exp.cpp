@@ -3,6 +3,27 @@
 #include "visitor.h"
 using namespace std;
 
+string typeToString(Type type) {
+    switch(type) {
+        case UNDEFINED_TYPE: return "Undefined";
+        case INT_TYPE: return "Int";
+        case FLOAT_TYPE: return "Float";
+        case BOOLEAN_TYPE: return "Boolean";
+        case UNIT_TYPE: return "Unit";
+        case RANGE_TYPE: return "Range";
+        default: return "Unknown";
+    }
+}
+
+Type stringToType(const string& typeStr) {
+    if (typeStr == "Int") return INT_TYPE;
+    else if (typeStr == "Float") return FLOAT_TYPE;
+    else if (typeStr == "Boolean") return BOOLEAN_TYPE;
+    else if (typeStr == "Unit") return UNIT_TYPE;
+    else if (typeStr == "Range") return RANGE_TYPE;
+    else return UNDEFINED_TYPE;
+}
+
 Exp::~Exp() {}
 BinaryExp::BinaryExp(Exp* l, Exp* r, BinaryOp op):left(l),right(r),op(op) {
     // Si es suma, resta, multiplicación o división, puede ser Int o Float

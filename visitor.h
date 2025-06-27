@@ -154,27 +154,24 @@ public:
     int visit(ArrayMethodExp* exp) override;
 };
 
-class TypeVisitor : public Visitor {
-    Environment env;
+class CodeGenVisitor : public Visitor {
 public:
-    void check(Program* program);
     int visit(BinaryExp* exp) override;
     int visit(UnaryExp* exp) override;
     int visit(NumberExp* exp) override;
-  
     int visit(DecimalExp* exp) override;
     int visit(BoolExp* exp) override;
     int visit(IdentifierExp* exp) override;
     int visit(RangeExp* exp) override;
     void visit(AssignStatement* stm) override;
 
-    void visit(PlusAssignStatement* stm) override;
-    void visit(MinusAssignStatement* stm) override;
+    void visit(PlusAssignStatement* stm) override; // PlusAssignStatement
+    void visit(MinusAssignStatement* stm) override; // MinusAssignStatement
 
     void visit(PrintStatement* stm) override;
-    void visit(IfStatement* stm) override;
-    void visit(WhileStatement* stm) override;
-    void visit(ForStatement* stm) override;
+    void visit(IfStatement* stm) override; // IfStatement
+    void visit(WhileStatement* stm) override; // WhileStatement
+    void visit(ForStatement* stm) override; // ForStatement
     void visit(VarDec* stm) override;
     void visit(VarDecList* stm) override;
     void visit(StatementList* stm) override;
