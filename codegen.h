@@ -36,7 +36,7 @@ public:
     bool needsFloatOperation(BinaryExp* exp);
     std::string getFloatConstant(double value);
 
-    // Métodos visit para expresiones
+    // métodos visit para expresiones
     int visit(BinaryExp* exp) override;
     int visit(UnaryExp* exp) override;
     int visit(NumberExp* exp) override;
@@ -46,7 +46,7 @@ public:
     int visit(RangeExp* exp) override;
     int visit(FCallExp* fcall) override;
 
-    // Métodos visit para statements
+    // métodos visit para statements
     void visit(AssignStatement* stm) override;
     void visit(PlusAssignStatement* stm) override;
     void visit(MinusAssignStatement* stm) override;
@@ -63,6 +63,19 @@ public:
     void visit(FunDecList* fundecs) override;
     void visit(FCallStm* fcall) override;
     void visit(ReturnStatement* retstm) override;
+
+    // métodos del visitor para arrays
+    int visit(ArrayExp* exp) override;
+    int visit(ArrayAccessExp* exp) override;
+    int visit(ArrayMethodExp* exp) override;
+
+    
+    // operaciones auxiliares para arrays
+    void allocateArray(const std::string& arrayName, int size, const std::string& type);
+    std::string getArrayElementType(const std::string& arrayName);
+    
+    // sigo el tipo de los arrays
+    std::unordered_map<std::string, std::pair<std::string, int>> arrayInfo; // name -> (type, size)
 };
 
 #endif // CODEGEN_H

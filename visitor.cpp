@@ -6,9 +6,8 @@
 #include <sstream>
 using namespace std;
 
-
 /////////////////////////////////////////////////////////////////////////////////////
-///// Visutors
+///// Visitors
 /////////////////////////////////////////////////////////////////////////////////////
 int BinaryExp::accept(Visitor* visitor) {
     return visitor->visit(this);
@@ -64,6 +63,11 @@ int IfStatement::accept(Visitor* visitor) {
     return 0;
 }
 
+int StatementList::accept(Visitor* visitor) {
+    visitor->visit(this);
+    return 0;
+}
+
 int WhileStatement::accept(Visitor* visitor) {
     visitor->visit(this);
     return 0;
@@ -82,10 +86,7 @@ int VarDecList::accept(Visitor* visitor) {
     visitor->visit(this);
     return 0;
 }
-int StatementList::accept(Visitor* visitor) {
-    visitor->visit(this);
-    return 0;
-}
+
 int Body::accept(Visitor* visitor) {
     visitor->visit(this);
     return 0;
@@ -119,6 +120,21 @@ int ReturnStatement::accept(Visitor* visitor) {
     visitor->visit(this);
     return 0;
 }
+
+/////////////////////////////////////////////////////////////////////////////////////
+// Array
+int ArrayExp::accept(Visitor* visitor) {
+    return visitor->visit(this);
+}
+
+int ArrayAccessExp::accept(Visitor* visitor) {
+    return visitor->visit(this);
+}
+
+int ArrayMethodExp::accept(Visitor* visitor) {
+    return visitor->visit(this);
+}
+/////////////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////////////
 ///// PrintVisitor
@@ -292,10 +308,12 @@ void PrintVisitor::visit(ForStatement* stm) {
 
 void PrintVisitor::visit(VarDec* stm){
     imprimirIndentacion();
-    cout << "var " << stm->id << " : " << stm->type;
+    cout << "var " << stm->id;
     if (stm->value != nullptr) {
         cout << " = ";
         stm->value->accept(this);
+    } else {
+        cout << " : " << stm->type;
     }
     cout << endl;
 }
@@ -320,11 +338,11 @@ void PrintVisitor::visit(Body* stm){
 }
 
 void PrintVisitor::visit(Program* program) {
-    // Imprimir variables globales primero
+    // se imprime variables globales primero
     if (program->vardecs && program->vardecs->decls.size() > 0) {
         program->vardecs->accept(this);
     }
-    // Luego imprimir funciones
+    // luego imprimo funciones
     if (program->fundecs && program->fundecs->fundecs.size() > 0) {
         program->fundecs->accept(this);
     }
@@ -334,7 +352,7 @@ void PrintVisitor::visit(FunDec* fundec) {
     imprimirIndentacion();
     cout << "fun " << fundec->nombre << "(";
     
-    // Imprimir parámetros con sus tipos
+    // imprimo parámetros con sus tipos
     if (!fundec->parametros.empty()) {
         auto it_param = fundec->parametros.begin();
         auto it_tipo = fundec->tipos_parametros.begin();
@@ -405,6 +423,38 @@ void PrintVisitor::visit(ReturnStatement* retstm) {
         retstm->e->accept(this);
     }
 }
+
+int PrintVisitor::visit(ArrayExp* exp) {
+    cout << "arrayOf<" << exp->type << ">(";
+    for (size_t i = 0; i < exp->elements.size(); ++i) {
+        exp->elements[i]->accept(this);
+        if (i + 1 < exp->elements.size()) cout << ", ";
+    }
+    cout << ")";
+    return 0;
+}
+
+int PrintVisitor::visit(ArrayAccessExp* exp) {
+    exp->array->accept(this);
+    cout << "[";
+    exp->index->accept(this);
+    cout << "]";
+    return 0;
+}
+
+int PrintVisitor::visit(ArrayMethodExp* exp) {
+    exp->array->accept(this);
+    switch (exp->method) {
+        case ArrayMethodType::SIZE:
+            cout << ".size";
+            break;
+        case ArrayMethodType::INDICES:
+            cout << ".indices";
+            break;
+    }
+    return 0;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 ///// EVALVisitor
 /////////////////////////////////////////////////////////////////////////////////////
@@ -435,15 +485,15 @@ int EVALVisitor::visit(BoolExp* exp) {
 }
 
 int EVALVisitor::visit(IdentifierExp* exp) {
-    int t = evalTypeFromEnv(env, exp->name);  // Obtener el tipo de la variable
+    int t = evalTypeFromEnv(env, exp->name);  // obtengo el tipo de la variable
     lastType = t;  // Guardamos el tipo de la variable
 
     if (t == 1) {
-        lastInt = env.lookup(exp->name);  // Recuperamos el valor entero
+        lastInt = env.lookup(exp->name);  // recupero el valor entero
     } else if (t == 2) {
-        lastFloat = env.lookup_float(exp->name);  // Recuperamos el valor flotante
+        lastFloat = env.lookup_float(exp->name);  // recupero el valor flotante
     } else if (t == 3) {
-        lastInt = env.lookup_bool(exp->name) ? 1 : 0;  // Asignamos 1 si es true, 0 si es false
+        lastInt = env.lookup_bool(exp->name) ? 1 : 0;  // asigno 1 si es true, 0 si es false
     }
     return t;
 }
@@ -460,85 +510,33 @@ int EVALVisitor::visit(RangeExp* exp) {
     return lastType;
 }
 
-// int EVALVisitor::visit(BinaryExp* exp) {
-//     int lt = exp->left->accept(this);
-//     int leftType = lastType;
-//     int ri = exp->right->accept(this);
-//     int rightType = lastType;
-
-//     // si hay float, convertimos ambos lados a float y operamos en float
-//     if (leftType == 2 || rightType == 2) {
-//         float lv, rv;
-//         // obtener valores float de ambas ramas
-//         exp->left->accept(this);
-//         lv = (lastType == 2) ? lastFloat : (float)lastInt;
-//         exp->right->accept(this);
-//         rv = (lastType == 2) ? lastFloat : (float)lastInt;
-//         lastType = 2;
-//         switch(exp->op) {
-//             case PLUS_OP: lastFloat = lv + rv; break;
-//             case MINUS_OP: lastFloat = lv - rv; break;
-//             case MUL_OP: lastFloat = lv * rv; break;
-//             case DIV_OP: lastFloat = lv / rv; break;
-//             case LT_OP:   lastType=3; lastInt=(lv < rv); break;
-//             case LE_OP:   lastType=3; lastInt=(lv <= rv); break;
-//             case EQ_OP:   lastType=3; lastInt=(lv == rv); break;
-//             case AND_OP:   // Evaluar AND lógico
-//                 lastType = 3;
-//                 lastInt = (lv != 0 && rv != 0) ? 1 : 0;
-//                 break;
-//             case OR_OP:    // Evaluar OR lógico
-//                 lastType = 3;
-//                 lastInt = (lv != 0 || rv != 0) ? 1 : 0;
-//                 break;
-//         }
-//         return lastType;
-//     }
-//     // si ambos son enteros o bool
-//     exp->left->accept(this);
-//     int lv = lastInt;
-//     exp->right->accept(this);
-//     int rv = lastInt;
-//     switch(exp->op) {
-//         case PLUS_OP: lastType=1; lastInt = lv + rv; break;
-//         case MINUS_OP: lastType=1; lastInt = lv - rv; break;
-//         case MUL_OP: lastType=1; lastInt = lv * rv; break;
-//         case DIV_OP: lastType=1; lastInt = lv / rv; break;
-//         case LT_OP:  lastType=3; lastInt = (lv < rv); break;
-//         case LE_OP:  lastType=3; lastInt = (lv <= rv); break;
-//         case EQ_OP:  lastType=3; lastInt = (lv == rv); break;
-//     }
-//     return lastType;
-// }
-
-
 int EVALVisitor::visit(BinaryExp* exp) {
     int lt = exp->left->accept(this);
     int leftType = lastType;
     int ri = exp->right->accept(this);
     int rightType = lastType;
 
-    // Si hay un float, convertimos ambos lados a float y operamos en float
+    // si hay un float, convertimos ambos lados a float y operamos en float
     if (leftType == 2 || rightType == 2) {
         float lv, rv;
-        // Obtener valores float de ambas ramas
-        exp->left->accept(this); // Re-evaluar para obtener el valor float
+        // obtengo valores float de ambas ramas
+        exp->left->accept(this); // cast a float si es necesario
         lv = (lastType == 2) ? lastFloat : (float)lastInt;        
-        exp->right->accept(this); // Re-evaluar para obtener el valor float
+        exp->right->accept(this); // cast a float si es necesario
         rv = (lastType == 2) ? lastFloat : (float)lastInt;
-        lastType = 2; // Por defecto, el resultado de una operación numérica mixta es float
+        lastType = 2; // El resultado es float
 
         switch(exp->op) {
             case PLUS_OP:  lastFloat = lv + rv; break;
             case MINUS_OP: lastFloat = lv - rv; break;
             case MUL_OP:   lastFloat = lv * rv; break;
             case DIV_OP:   lastFloat = lv / rv; break;
-            case LT_OP:    lastType = 3; lastInt = (lv < rv); break;    // Resultado booleano
-            case LE_OP:    lastType = 3; lastInt = (lv <= rv); break;   // Resultado booleano
-            case GT_OP:    lastType = 3; lastInt = (lv > rv); break;    // Resultado booleano
-            case GE_OP:    lastType = 3; lastInt = (lv >= rv); break;   // Resultado booleano
-            case EQ_OP:    lastType = 3; lastInt = (lv == rv); break;   // Resultado booleano
-            case NOT_EQ_OP: lastType = 3; lastInt = (lv != rv); break;  // Resultado booleano
+            case LT_OP:    lastType = 3; lastInt = (lv < rv); break;    
+            case LE_OP:    lastType = 3; lastInt = (lv <= rv); break;   
+            case GT_OP:    lastType = 3; lastInt = (lv > rv); break;    
+            case GE_OP:    lastType = 3; lastInt = (lv >= rv); break;   
+            case EQ_OP:    lastType = 3; lastInt = (lv == rv); break;   
+            case NOT_EQ_OP: lastType = 3; lastInt = (lv != rv); break;  
             case AND_OP:   // Evaluar AND lógico para flotantes
                 lastType = 3; // El resultado es booleano
                 lastInt = (lv != 0.0f && rv != 0.0f) ? 1 : 0;
@@ -550,9 +548,9 @@ int EVALVisitor::visit(BinaryExp* exp) {
         }
         return lastType;
     }
-    exp->left->accept(this); // Obtener el valor int
+    exp->left->accept(this);
     int lv = lastInt;
-    exp->right->accept(this); // Obtener el valor int
+    exp->right->accept(this); 
     int rv = lastInt;
 
     switch(exp->op) {
@@ -560,12 +558,12 @@ int EVALVisitor::visit(BinaryExp* exp) {
         case MINUS_OP: lastType = 1; lastInt = lv - rv; break;
         case MUL_OP:   lastType = 1; lastInt = lv * rv; break;
         case DIV_OP:   lastType = 1; lastInt = lv / rv; break;
-        case LT_OP:    lastType = 3; lastInt = (lv < rv); break;    // Resultado booleano
-        case LE_OP:    lastType = 3; lastInt = (lv <= rv); break;   // Resultado booleano
-        case GT_OP:    lastType = 3; lastInt = (lv > rv); break;    // Resultado booleano
-        case GE_OP:    lastType = 3; lastInt = (lv >= rv); break;   // Resultado booleano
-        case EQ_OP:    lastType = 3; lastInt = (lv == rv); break;   // Resultado booleano
-        case NOT_EQ_OP: lastType = 3; lastInt = (lv != rv); break;  // Resultado booleano
+        case LT_OP:    lastType = 3; lastInt = (lv < rv); break;    
+        case LE_OP:    lastType = 3; lastInt = (lv <= rv); break;   
+        case GT_OP:    lastType = 3; lastInt = (lv > rv); break;    
+        case GE_OP:    lastType = 3; lastInt = (lv >= rv); break;   
+        case EQ_OP:    lastType = 3; lastInt = (lv == rv); break;   
+        case NOT_EQ_OP: lastType = 3; lastInt = (lv != rv); break;  
         case AND_OP:   // Evaluar AND lógico para enteros/booleanos
             lastType = 3; // El resultado es booleano
             lastInt = (lv != 0 && rv != 0) ? 1 : 0;
@@ -648,145 +646,9 @@ void EVALVisitor::ejecutar(Program* program){
     program->accept(this);
 }
 
-void EVALVisitor::visit(VarDec* stm) {
-    if (stm->value) {
-        int evaluated_type = stm->value->accept(this);
-        string declared_type = stm->type;
-
-        if (declared_type == "Int") {
-            env.add_var(stm->id, (evaluated_type == 2) ? static_cast<int>(lastFloat) : lastInt, declared_type);
-        } else if (declared_type == "Float") {
-            // **Aquí es donde 31 (de NumberExp) se convierte a 31.0f para almacenamiento**
-            env.add_var(stm->id, (evaluated_type == 1) ? static_cast<float>(lastInt) : lastFloat, declared_type);
-        } else if (declared_type == "Boolean") {
-            env.add_var(stm->id, (bool)lastInt, declared_type);
-        }
-    } else {
-        env.add_var(stm->id, stm->type);
-    }
-}
-
 void EVALVisitor::visit(VarDecList* stm){
     for(auto i: stm->decls){
         i->accept(this);
-    }
-}
-
-void EVALVisitor::visit(StatementList* stm){
-    for(auto i: stm->stms){
-        if (returnExecuted) break; // Si se ejecutó return, dejar de ejecutar statements
-        i->accept(this);
-    }
-}
-
-void EVALVisitor::visit(Body* b){
-    env.add_level(); // tener en cuenta que agrego un nivel cada que inicio un programa    
-    b->vardecs->accept(this);
-    if (!returnExecuted) { // Solo ejecutar statements si no hay return
-        b->slist->accept(this);
-    }
-    env.remove_level(); // quitar el nivel cuando termine de ejecutar el programa
-}
-
-void EVALVisitor::visit(Program* program) {
-    lastType = 1;
-    lastInt = 0;
-    lastFloat = 0.0f;
-    returnExecuted = false;
-    
-    // Agregar nivel de entorno para el programa
-    env.add_level();
-    
-    // Visitar las declaraciones de variables globales
-    if (program->vardecs) {
-        program->vardecs->accept(this);
-    }
-    
-    // Primero registrar todas las funciones
-    if (program->fundecs) {
-        program->fundecs->accept(this);
-    }
-    
-    // Luego buscar y ejecutar main
-    auto it = funciones.find("main");
-    if (it != funciones.end()) {
-        FunDec* mainFunc = it->second;
-        if (mainFunc->cuerpo) {
-            mainFunc->cuerpo->accept(this);
-        }
-    }
-    
-    env.remove_level();
-}
-
-void EVALVisitor::visit(IfStatement* stm) {
-    // Evaluar la condición principal
-    stm->condition->accept(this);
-    bool condition_result = (lastType == 3) ? (lastInt != 0) : (lastInt != 0 || lastFloat != 0.0f);
-    
-    if (condition_result) {
-        stm->then->accept(this);
-    } else {
-        // Evaluar else if's en orden
-        bool executed = false;
-        for (const auto& elseif : stm->elseifs) {
-            elseif.first->accept(this);
-            bool elseif_result = (lastType == 3) ? (lastInt != 0) : (lastInt != 0 || lastFloat != 0.0f);
-            
-            if (elseif_result) {
-                elseif.second->accept(this);
-                executed = true;
-                break;
-            }
-        }
-        
-        if (!executed && stm->els != nullptr) {
-            stm->els->accept(this);
-        }
-    }
-}
-
-void EVALVisitor::visit(WhileStatement* stm) {
-    while (true) {
-        stm->condition->accept(this);
-        bool condition_result = (lastType == 3) ? (lastInt != 0) : (lastInt != 0 || lastFloat != 0.0f);
-        
-        if (!condition_result) break;
-        stm->b->accept(this);
-    }
-}
-
-void EVALVisitor::visit(ForStatement* stm) {
-    if (RangeExp* range = dynamic_cast<RangeExp*>(stm->range)) {
-        range->start->accept(this);
-        int start_val = (lastType == 2) ? (int)lastFloat : lastInt;
-        
-        range->end->accept(this);
-        int end_val = (lastType == 2) ? (int)lastFloat : lastInt;
-        
-        int step_val = 1;
-        if (range->step != nullptr) { //Si tenemos un step, lo recuperamos y vemos su tipo, si es float lo convertimos a entero (no se puede ir a 1.4 xd )
-            range->step->accept(this);
-            step_val = (lastType == 2) ? (int)lastFloat : lastInt;
-        }
-        
-        string var_type = stm->type.empty() ? "Int" : stm->type;
-        env.add_level();
-        
-        if (range->type == RANGE_DOTDOT || range->type == RANGE_UNTIL) { //Si vamos hacia arriba, tenemos el dotdot y el until
-            int limit = (range->type == RANGE_DOTDOT) ? end_val : end_val - 1;
-            for (int i = start_val; i <= limit; i += step_val) {
-                env.add_var(stm->id, i, var_type);
-                stm->body->accept(this);
-            }
-        } else if (range->type == RANGE_DOWNTO) { //El downto va hacia abajo
-            for (int i = start_val; i >= end_val; i -= step_val) {
-                env.add_var(stm->id, i, var_type);
-                stm->body->accept(this);
-            }
-        }
-        
-        env.remove_level();
     }
 }
 
@@ -871,288 +733,227 @@ void EVALVisitor::visit(ReturnStatement* retstm) {
     returnExecuted = true;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////
-///// TypeVisitor
-/////////////////////////////////////////////////////////////////////////////////////
-
-// FALTA TYPECHECKER
-// //0 = undefined
-// //1 = int
-// //2 = bool
-// //3 = float
-
-void TypeVisitor::check(Program* program){
-    // program->body->accept(this);
-}
-
-int TypeVisitor::visit(BinaryExp* exp) {
-    // int result;
-    // int v1 = exp->left->accept(this);
-    // int v2 = exp->right->accept(this);
-    // switch(exp->op) {
-    //     case PLUS_OP: result = 1; break;
-    //     case MINUS_OP: result = 1; break;
-    //     case MUL_OP: result = 1; break;
-    //     case DIV_OP: result = 1; break; // Evalúa -> Typechecker debe analizar que no se divida por 0
-    //     case LT_OP: result = 2; break;
-    //     case LE_OP: result = 2; break;
-    //     case EQ_OP: result = 2; break;
-    // }
-    // return result;
+int EVALVisitor::visit(ArrayExp* exp) {
+    // Detecta tipo de array y almacena en env
+    if (exp->type == "Int") {
+        std::vector<int> vals;
+        for (auto e : exp->elements) {
+            e->accept(this);
+            vals.push_back(lastInt);
+        }
+        // El almacenamiento real se hace en la declaración de variable (VarDec)
+        lastType = 5; // 5 = Array<Int>
+        lastArrayInt = vals;
+        return lastType;
+    } else if (exp->type == "Float") {
+        std::vector<float> vals;
+        for (auto e : exp->elements) {
+            e->accept(this);
+            vals.push_back(lastFloat);
+        }
+        lastType = 6; // 6 = Array<Float>
+        lastArrayFloat = vals;
+        return lastType;
+    }
     return 0;
 }
 
-int TypeVisitor::visit(UnaryExp* exp) {
-    return 3;  // Tipo booleano
-}
-
-int TypeVisitor::visit(NumberExp* exp) {
-    return 1;
-}
-
-int TypeVisitor::visit(DecimalExp* exp) {
-    return 2;
-}
-
-
-int TypeVisitor::visit(BoolExp* exp) {
-    return 3;
-}
-
-int TypeVisitor::visit(IdentifierExp* exp) {
-    // if (!env.check(exp->name)){
-    //     cout << "Variable no definida: "<< exp->name << endl;        
-    //     exit(0);
-    // }
+int EVALVisitor::visit(ArrayAccessExp* exp) {
+    // Primero evaluamos el índice
+    int idxType = exp->index->accept(this);
+    int idx = (idxType == 2) ? (int)lastFloat : lastInt;
+    auto idExp = dynamic_cast<IdentifierExp*>(exp->array);
+    if (idExp) {
+        std::string arrType = env.lookup_type(idExp->name);
+        if (arrType == "Array<Int>") {
+            auto& arr = env.lookup_array_int(idExp->name);
+            if (idx >= 0 && idx < (int)arr.size()) {
+                lastType = 1;
+                lastInt = arr[idx];
+                return lastType;
+            } else {
+                std::cerr << "Error: Índice fuera de rango en Array<Int> '" << idExp->name << "' (idx=" << idx << ")\n";
+            }
+        } else if (arrType == "Array<Float>") {
+            auto& arr = env.lookup_array_float(idExp->name);
+            if (idx >= 0 && idx < (int)arr.size()) {
+                lastType = 2;
+                lastFloat = arr[idx];
+                return lastType;
+            } else {
+                std::cerr << "Error: Índice fuera de rango en Array<Float> '" << idExp->name << "' (idx=" << idx << ")\n";
+            }
+        } else {
+            std::cerr << "Error: Tipo de array no soportado para acceso: '" << arrType << "'\n";
+        }
+    } else {
+        std::cerr << "Error: Acceso a array con expresión no identificador\n";
+    }
     return 0;
 }
 
-int TypeVisitor::visit(RangeExp* exp) {
-    // int start_type = exp->start->accept(this);
-    // int end_type = exp->end->accept(this);
-    // if (start_type != 1 || end_type != 1) {
-    //     cout << "Error: Las expresiones tienen que estar dentro de un rango valido" << endl;
-    //     exit(0);
-    // }
-    return 1; // Range returns int type
+int EVALVisitor::visit(ArrayMethodExp* exp) {
+    auto idExp = dynamic_cast<IdentifierExp*>(exp->array);
+    if (!idExp) return 0;
+    std::string arrType = env.lookup_type(idExp->name);
+    if (arrType == "Array<Int>") {
+        auto& arr = env.lookup_array_int(idExp->name);
+        switch (exp->method) {
+            case ArrayMethodType::SIZE:
+                lastType = 1;
+                lastInt = arr.size();
+                return lastType;
+            case ArrayMethodType::INDICES:
+                lastType = 5;
+                lastArrayInt.clear();
+                for (int i = 0; i < arr.size(); ++i) lastArrayInt.push_back(i);
+                return lastType;
+        }
+    } else if (arrType == "Array<Float>") {
+        auto& arr = env.lookup_array_float(idExp->name);
+        switch (exp->method) {
+            case ArrayMethodType::SIZE:
+                lastType = 1;
+                lastInt = arr.size();
+                return lastType;
+            case ArrayMethodType::INDICES:
+                lastType = 5;
+                lastArrayInt.clear();
+                for (int i = 0; i < arr.size(); ++i) lastArrayInt.push_back(i);
+                return lastType;
+        }
+    }
+    return 0;
 }
 
-void TypeVisitor::visit(AssignStatement* stm) {
-    // if (!env.check(stm->id)) {
-    //     cout << "Variable no declarada: " << stm->id << endl;
-    //     exit(0);
-    // }
-
-    // if (env.lookup_type(stm->id) == "int" and stm->rhs->accept(this) == 1) {
-    // } else if (env.lookup_type(stm->id) == "float" and stm->rhs->accept(this) == 2) {
-    // } else if (env.lookup_type(stm->id) == "bool" and stm->rhs->accept(this) == 3) {
-    //     cout << "Error: No coinciden los tipos en la asignacion: " << stm->id << endl;
-    //     exit(0);
-    // }
+void EVALVisitor::visit(VarDec* stm) {
+    if (stm->value) {
+        int evaluated_type = stm->value->accept(this);
+        std::string declared_type = stm->type;
+        if (declared_type == "Int") {
+            env.add_var(stm->id, (evaluated_type == 2) ? static_cast<int>(lastFloat) : lastInt, declared_type);
+        } else if (declared_type == "Float") {
+            env.add_var(stm->id, (evaluated_type == 1) ? static_cast<float>(lastInt) : lastFloat, declared_type);
+        } else if (declared_type == "Boolean") {
+            env.add_var(stm->id, (bool)lastInt, declared_type);
+        } else if (declared_type == "Array<Int>") {
+            env.add_array(stm->id, lastArrayInt);
+        } else if (declared_type == "Array<Float>") {
+            env.add_array(stm->id, lastArrayFloat);
+        }
+    } else {
+        env.add_var(stm->id, stm->type);
+    }
 }
 
-// Para la declaración de suma +=
-void TypeVisitor::visit(PlusAssignStatement* stm) {
-    // if (!env.check(stm->id)) {
-    //     cout << "Variable no declarada: " << stm->id << endl;
-    //     exit(0);
-    // }
-
-    // if (env.lookup_type(stm->id) == "int" and stm->rhs->accept(this) == 1) {
-    // } else if (env.lookup_type(stm->id) == "float" and stm->rhs->accept(this) == 2) {
-    // } else if (env.lookup_type(stm->id) == "bool" and stm->rhs->accept(this) == 3) {
-    //     cout << "Error: No coinciden los tipos en la asignacion: " << stm->id << endl;
-    //     exit(0);
-    // }
+void EVALVisitor::visit(StatementList* stm){
+    for(auto i: stm->stms){
+        if (returnExecuted) break; // Si se ejecutó return, dejar de ejecutar statements
+        i->accept(this);
+    }
 }
 
-void TypeVisitor::visit(MinusAssignStatement* stm) {
-    // if (!env.check(stm->id)) {
-    //     cout << "Variable no declarada: " << stm->id << endl;
-    //     exit(0);
-    // }
-
-    // if (env.lookup_type(stm->id) == "int" and stm->rhs->accept(this) == 1) {
-    // } else if (env.lookup_type(stm->id) == "float" and stm->rhs->accept(this) == 2) {
-    // } else if (env.lookup_type(stm->id) == "bool" and stm->rhs->accept(this) == 3) {
-    //     cout << "Error: No coinciden los tipos en la asignacion: " << stm->id << endl;
-    //     exit(0);
-    // }
+void EVALVisitor::visit(Body* b){
+    env.add_level(); // tener en cuenta que agrego un nivel cada que inicio un programa    
+    b->vardecs->accept(this);
+    if (!returnExecuted) { // Solo ejecutar statements si no hay return
+        b->slist->accept(this);
+    }
+    env.remove_level(); // quitar el nivel cuando termine de ejecutar el programa
 }
 
-void TypeVisitor::visit(PrintStatement* stm) {
-    // cout << stm->e->accept(this);
-}
-
-void TypeVisitor::visit(IfStatement* stm) {
-    // int condition_type = stm->condition->accept(this);
-    // if (condition_type != 3) { // 3 = bool
-    //     cout << "Error: La condicion tiene que se booleana" << endl;
-    //     exit(0);
-    // }
-    // stm->then->accept(this);
-    // if (stm->els != nullptr) {
-    //     stm->els->accept(this);
-    // }
-}
-
-void TypeVisitor::visit(WhileStatement* stm) {
-    // int condition_type = stm->condition->accept(this);
-    // if (condition_type != 3) { // 3 = bool
-    //     cout << "Error: La condicion tiene que se booleana" << endl;
-    //     exit(0);
-    // }
-    // stm->b->accept(this);
-}
-
-void TypeVisitor::visit(ForStatement* stm) {
-    // int range_type = stm->range->accept(this);
-    // if (range_type != 1) {
-    //     cout << "Error: El rango tiene que usar enteros" << endl;
-    //     exit(0);
-    // }
-    // 
-    // env.add_var(stm->id, stm->type.empty() ? "Int" : stm->type);
-    // stm->body->accept(this);
-}
-
-void TypeVisitor::visit(VarDec* stm) {
+void EVALVisitor::visit(Program* program) {
+    lastType = 1;
+    lastInt = 0;
+    lastFloat = 0.0f;
+    returnExecuted = false;
     
-}
-
-void TypeVisitor::visit(VarDecList* stm) {
-    // for(auto i: stm->decls){
-    //     i->accept(this);
-    // }
-}
-
-void TypeVisitor::visit(StatementList* stm) {
-    // for(auto i: stm->stms){
-    //     i->accept(this);
-    // }
-}
-
-void TypeVisitor::visit(Body* b) {
-    // env.add_level(); // tener en cuenta que agrego un nivel cada que inicio un programa    
-    // b->vardecs->accept(this);
-    // b->slist->accept(this);
-    // env.remove_level(); // quitar el nivel cuando termine de ejecutar el programa
-}
-
-
-void TypeVisitor::visit(Program* program) {
+    env.add_level();
+    
     if (program->vardecs) {
         program->vardecs->accept(this);
     }
     
+    // Primero registrar todas las funciones
     if (program->fundecs) {
         program->fundecs->accept(this);
     }
-}
-
-void TypeVisitor::visit(FunDec* fundec) {
-    // env.add_level();
-    // if (fundec->params) {
-    //     fundec->params->accept(this);
-    // }
-    // if (fundec->body) {
-    //     fundec->body->accept(this);
-    // }
-    // env.remove_level();
-}
-
-void TypeVisitor::visit(FunDecList* fundecs) {
-    for (auto fundec : fundecs->fundecs) {
-        fundec->accept(this);
+    
+    // Luego buscar y ejecutar main
+    auto it = funciones.find("main");
+    if (it != funciones.end()) {
+        FunDec* mainFunc = it->second;
+        if (mainFunc->cuerpo) {
+            mainFunc->cuerpo->accept(this);
+        }
     }
+    
+    env.remove_level();
 }
 
-int TypeVisitor::visit(FCallExp* fcall) {
-
-    return 1;
-}
-
-void TypeVisitor::visit(FCallStm* fcall) {
-    if (!fcall->argumentos.empty()) {
-        for (auto arg : fcall->argumentos) {
-            arg->accept(this);
+void EVALVisitor::visit(IfStatement* stm) {
+    // Evaluar la condición principal
+    stm->condition->accept(this);
+    bool condition_result = (lastType == 3) ? (lastInt != 0) : (lastInt != 0 || lastFloat != 0.0f);
+    
+    if (condition_result) {
+        stm->then->accept(this);
+    } else {
+        // Evaluar else if's en orden
+        bool executed = false;
+        for (const auto& elseif : stm->elseifs) {
+            elseif.first->accept(this);
+            bool elseif_result = (lastType == 3) ? (lastInt != 0) : (lastInt != 0 || lastFloat != 0.0f);
+            
+            if (elseif_result) {
+                elseif.second->accept(this);
+                executed = true;
+                break;
+            }
+        }
+        
+        if (!executed && stm->els != nullptr) {
+            stm->els->accept(this);
         }
     }
 }
 
-void TypeVisitor::visit(ReturnStatement* retstm) {
-    if (retstm->e) {
-        retstm->e->accept(this);
+void EVALVisitor::visit(WhileStatement* stm) {
+    while (true) {
+        stm->condition->accept(this);
+        bool condition_result = (lastType == 3) ? (lastInt != 0) : (lastInt != 0 || lastFloat != 0.0f);
+        
+        if (!condition_result) break;
+        stm->b->accept(this);
     }
 }
 
-/////////////////////////////////////////////////////////////////////////////////////
-///// CodeGen
-/////////////////////////////////////////////////////////////////////////////////////
-
-int CodeGenVisitor::visit(BinaryExp* exp) {
-    return 0;
-}
-
-int CodeGenVisitor::visit(UnaryExp* exp) {
-    return 0;
-}
-
-int CodeGenVisitor::visit(NumberExp* exp) {
-    return 0;
-}
-
-int CodeGenVisitor::visit(DecimalExp* exp) {
-    return 0;
-}
-
-int CodeGenVisitor::visit(BoolExp* exp) {
-    return 0;
-}
-
-int CodeGenVisitor::visit(IdentifierExp* exp) {
-    return 0;
-}
-
-int CodeGenVisitor::visit(RangeExp* exp) {
-    return 0;
-}
-
-void CodeGenVisitor::visit(AssignStatement* stm) {
-}
-
-// Para la declaración de suma +=
-void CodeGenVisitor::visit(PlusAssignStatement* stm) {
-}
-
-// Para la declaración de resta -=
-void CodeGenVisitor::visit(MinusAssignStatement* stm) {
-}
-
-void CodeGenVisitor::visit(PrintStatement* stm) {
-}
-
-void CodeGenVisitor::visit(IfStatement* stm) {
-}
-
-void CodeGenVisitor::visit(WhileStatement* stm) {
-}
-
-void CodeGenVisitor::visit(ForStatement* stm) {
-}
-
-void CodeGenVisitor::visit(VarDec* stm) {
-}
-
-void CodeGenVisitor::visit(VarDecList* stm) {
-}
-
-void CodeGenVisitor::visit(StatementList* stm) {
-}
-
-void CodeGenVisitor::visit(Body* b) {
-}
-
-void CodeGenVisitor::visit(Program* program) {
+void EVALVisitor::visit(ForStatement* stm) {
+    std::vector<int> indices;
+    if (RangeExp* range = dynamic_cast<RangeExp*>(stm->range)) {
+        range->start->accept(this);
+        int start_val = (lastType == 2) ? (int)lastFloat : lastInt;
+        range->end->accept(this);
+        int end_val = (lastType == 2) ? (int)lastFloat : lastInt;
+        int step_val = 1;
+        if (range->step) {
+            range->step->accept(this);
+            step_val = (lastType == 2) ? (int)lastFloat : lastInt;
+        }
+        for (int i = start_val; i < end_val; i += step_val) {
+            indices.push_back(i);
+        }
+    } else {
+        stm->range->accept(this);
+        indices = lastArrayInt;
+    }
+    string var_type = stm->type.empty() ? "Int" : stm->type;
+    for (int i : indices) {
+        env.add_level();
+        env.add_var(stm->id, i, var_type);
+        stm->body->accept(this);
+        env.remove_level();
+        if (returnExecuted) break;
+    }
 }
 

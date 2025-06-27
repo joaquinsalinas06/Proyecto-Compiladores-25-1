@@ -21,6 +21,8 @@ private:
     Exp* parseTerm();
     Exp* parseFactor();
     Exp* parseRangeExpression();
+    Exp* parseArrayExpression();
+    Exp* parseArrayAccess(Exp* array);
 public:
     Parser(Scanner* scanner);
     Program* parseProgram();

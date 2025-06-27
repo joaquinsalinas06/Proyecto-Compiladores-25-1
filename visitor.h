@@ -34,6 +34,10 @@ class FCallExp;
 class FCallStm;
 class ReturnStatement;
 
+class ArrayExp;
+class ArrayAccessExp;
+class ArrayMethodExp;
+
 class Visitor {
 public:
     virtual int visit(BinaryExp* exp) = 0;
@@ -64,6 +68,9 @@ public:
     virtual int visit(FCallExp* fcall) = 0;
     virtual void visit(FCallStm* fcall) = 0;
     virtual void visit(ReturnStatement* retstm) = 0;
+    virtual int visit(ArrayExp* exp) = 0;
+    virtual int visit(ArrayAccessExp* exp) = 0;
+    virtual int visit(ArrayMethodExp* exp) = 0;
 };
 
 class PrintVisitor : public Visitor {
@@ -99,6 +106,9 @@ public:
     int visit(FCallExp* fcall) override;
     void visit(FCallStm* fcall) override;
     void visit(ReturnStatement* retstm) override;
+    int visit(ArrayExp* exp) override;
+    int visit(ArrayAccessExp* exp) override;
+    int visit(ArrayMethodExp* exp) override;
 };
 
 class EVALVisitor : public Visitor {
@@ -108,6 +118,8 @@ class EVALVisitor : public Visitor {
     int lastInt;     // último valor entero evaluado
     float lastFloat; // último valor float evaluado
     bool returnExecuted; // Flag para controlar la ejecución de return
+    std::vector<int> lastArrayInt;
+    std::vector<float> lastArrayFloat;
 
 public:
     void ejecutar(Program* program);
@@ -137,6 +149,9 @@ public:
     int visit(FCallExp* fcall) override;
     void visit(FCallStm* fcall) override;
     void visit(ReturnStatement* retstm) override;
+    int visit(ArrayExp* exp) override;
+    int visit(ArrayAccessExp* exp) override;
+    int visit(ArrayMethodExp* exp) override;
 };
 
 class TypeVisitor : public Visitor {
@@ -170,32 +185,10 @@ public:
     int visit(FCallExp* fcall) override;
     void visit(FCallStm* fcall) override;
     void visit(ReturnStatement* retstm) override;
+
+    int visit(ArrayExp* exp) override;
+    int visit(ArrayAccessExp* exp) override;
+    int visit(ArrayMethodExp* exp) override;
 };
-
-class CodeGenVisitor : public Visitor {
-public:
-    int visit(BinaryExp* exp) override;
-    int visit(UnaryExp* exp) override;
-    int visit(NumberExp* exp) override;
-    int visit(DecimalExp* exp) override;
-    int visit(BoolExp* exp) override;
-    int visit(IdentifierExp* exp) override;
-    int visit(RangeExp* exp) override;
-    void visit(AssignStatement* stm) override;
-
-    void visit(PlusAssignStatement* stm) override; // PlusAssignStatement
-    void visit(MinusAssignStatement* stm) override; // MinusAssignStatement
-
-    void visit(PrintStatement* stm) override;
-    void visit(IfStatement* stm) override; // IfStatement
-    void visit(WhileStatement* stm) override; // WhileStatement
-    void visit(ForStatement* stm) override; // ForStatement
-    void visit(VarDec* stm) override;
-    void visit(VarDecList* stm) override;
-    void visit(StatementList* stm) override;
-    void visit(Body* b) override;
-    void visit(Program* program) override;
-};
-
 
 #endif // VISITOR_H

@@ -9,16 +9,21 @@ public:
         VAR, TWO_POINTS, END, // VAR, : y fin de entrada
         AND, OR, PLUS, MINUS, MUL, DIV, NUM, DECIMAL, ERR, // Operadores, NUM, DECIMAL y errores
         PLUS_ASSIGN, MINUS_ASSIGN, // Operadores de asignación
-        PI, PD, ID, ASSIGN, PC, COMA, LT, LE, GT, GE, EQ, NOT_EQ, DOTDOT,  // (, ), id, =, ;, , , <, <=, >, >=, ==, ..
+        PI, PD, ID, ASSIGN, PC, COMA, LT, LE, GT, GE, EQ, NOT_EQ, DOTDOT, DOT,  // (, ), id, =, ;, , , <, <=, >, >=, ==, ..
         PRINT, PRINTLN, // println: print con un salto de líneas | print: print sin salto de línea
         IF, LLI, LLD, ELSE_IF, ELSE, // IfStatement
         WHILE, DO, // WhileStatement
         FOR, IN, // in: para rangos en kotlin
         UNTIL, DOWNTO, STEP, // operadores de rango en kotlin
         FALSE, TRUE, // booleanos
-        INT, FLOAT, BOOLEAN, UNIT, // enteros, floats, booleanos y unit (void)
         NOT,
-        FUN, RETURN // Funciones y retorno
+        FUN, RETURN, // Funciones y retorno
+        ARRAY_OF, // arrayOf
+        CI, CD, // Corchetes izquierdo y derecho [ ]
+        INDICES, // Para .indices
+        SIZE,    // Para .size
+        GENERIC_START, GENERIC_END, // < T > 
+        TYPE // tipos de datos: Int, Float, Boolean, Unit
     };
 
     Type type;

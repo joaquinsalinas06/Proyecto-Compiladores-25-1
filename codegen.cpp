@@ -4,16 +4,16 @@
 
 using namespace std;
 
-/////////////////////////////////////////////////////////////////////////////////////
-///// GenCodeVisitor 
-/////////////////////////////////////////////////////////////////////////////////////
+// ===================== GenCodeVisitor =====================
+// Acá arranca todo el show de generación de código
 
 void GenCodeVisitor::generar(Program* program) {
+    // Simplemente le digo al programa que se acepte a sí mismo
     program->accept(this); 
 }
 
 void GenCodeVisitor::collectConstants(Program* program) {
-    //Reuperammos primero todas las variables globales y sus valores iniciales, luego lo hacemos con las funciones
+    // Primero junto todas las constantes de las variables globales y después de las funciones
     if (program->vardecs) {
         for (auto vardec : program->vardecs->decls) {
             if (vardec->value) {
@@ -21,7 +21,6 @@ void GenCodeVisitor::collectConstants(Program* program) {
             }
         }
     }
-    
     if (program->fundecs) {
         for (auto fundec : program->fundecs->fundecs) {
             if (fundec->cuerpo) {
@@ -32,6 +31,7 @@ void GenCodeVisitor::collectConstants(Program* program) {
 }
 
 void GenCodeVisitor::visit(Program* program) {
+    // Arranco con todo limpio
     entornoFuncion = false;
     memoriaGlobal.clear();
     memoria.clear();
@@ -40,7 +40,7 @@ void GenCodeVisitor::visit(Program* program) {
     globalVarDecs.clear();
     constantCounter = 0;
     
-    collectConstants(program); //Recuperamos todas las constantes
+    collectConstants(program); // Junto todas las constantes que voy a necesitar
     
     out << ".data" << endl;
     out << "print_fmt: .string \"%ld\\n\"" << endl;
@@ -48,7 +48,7 @@ void GenCodeVisitor::visit(Program* program) {
     out << "print_bool_true: .string \"true\\n\"" << endl;
     out << "print_bool_false: .string \"false\\n\"" << endl;
 
-    //Segun todas las variabls que recuperamos, las guardamos en nuestra memoria global
+    // Ahora sí, reservo espacio para todas las variables globales
     if (program->vardecs) {
         for (auto vardec : program->vardecs->decls) {
             varTypes[vardec->id] = vardec->type;
@@ -57,7 +57,7 @@ void GenCodeVisitor::visit(Program* program) {
             
             if (vardec->value != nullptr) {
                 if (vardec->type == "Float") {
-                    //Si es que la variable es de tipo float, guardamos su valor en .double con su formato, que nos ayude mas adelante a trabajar con el
+                    // Si es float, lo guardo como double
                     if (DecimalExp* decExp = dynamic_cast<DecimalExp*>(vardec->value)) {
                         out << vardec->id << ": .double " << decExp->value << endl;
                     } else if (NumberExp* numExp = dynamic_cast<NumberExp*>(vardec->value)) {
@@ -66,7 +66,7 @@ void GenCodeVisitor::visit(Program* program) {
                         out << vardec->id << ": .double 0.0" << endl;
                     }
                 } else {
-                    //Cuando son enteros los guardamos en quad
+                    // Si es int, lo guardo como quad
                     if (NumberExp* numExp = dynamic_cast<NumberExp*>(vardec->value)) {
                         out << vardec->id << ": .quad " << numExp->value << endl;
                     } else {
@@ -74,7 +74,7 @@ void GenCodeVisitor::visit(Program* program) {
                     }
                 }
             } else {
-                //si no tiene un valor inicial seteamos el valor por defecto a 0
+                // Si no tiene valor inicial, le pongo 0
                 if (vardec->type == "Float") {
                     out << vardec->id << ": .double 0.0" << endl;
                 } else {
@@ -84,7 +84,7 @@ void GenCodeVisitor::visit(Program* program) {
         }
     }
     
-    // Generamos constantes que sean necesarias para el código, en una seccion solo de lectura
+    // Si tengo floats, los meto en .rodata para tenerlos a mano
     if (!floatConstants.empty()) {
         out << endl << ".section .rodata" << endl;
         out << ".align 8" << endl;
@@ -92,8 +92,6 @@ void GenCodeVisitor::visit(Program* program) {
             out << it->first << ":" << endl;
             out << "    .double " << it->second << endl;
         }
-        
-        
         out << ".L_neg_zero:" << endl;
         out << "    .double -0.0" << endl;
     }
@@ -553,14 +551,14 @@ void GenCodeVisitor::visit(ForStatement* stm) {
         
         int stepValue = 1;
         int stepOffset = 0;
-        if (range->step != nullptr) { //Si es que estamos definiendo un step distinto de 1
-            range->step->accept(this); //Genera el valor de ese step
+        if (range->step != nullptr) { //si es que estamos definiendo un step distinto de 1
+            range->step->accept(this); //genero el valor de ese step
             offset -= 8; 
             stepOffset = offset;
-            out << "    movq %rax, " << stepOffset << "(%rbp)" << endl; //guardalo en memoria
+            out << "    movq %rax, " << stepOffset << "(%rbp)" << endl; //lo guardo en memoria
         }
         
-        // Variable del loop
+        // variable del loop
         if (memoria.find(stm->id) == memoria.end()) {
             offset -= 8;
             memoria[stm->id] = offset;
@@ -587,7 +585,6 @@ void GenCodeVisitor::visit(ForStatement* stm) {
             out << "    jl .for_end_" << labelId << endl;
         }
         
-        // Cuerpo del loop
         stm->body->accept(this);
         
         out << "    movq " << memoria[stm->id] << "(%rbp), %rax" << endl;
@@ -598,10 +595,10 @@ void GenCodeVisitor::visit(ForStatement* stm) {
                 out << "    movq " << stepOffset << "(%rbp), %rcx" << endl;
                 out << "    subq %rcx, %rax" << endl;
             } else {
-                out << "    decq %rax" << endl;  //Sino reducimos en 1 ocmo ciempre
+                out << "    decq %rax" << endl;  // so reducimos en 1 como siempre
             }
         } else {
-            if (range->step != nullptr) { //Misma logica, si es que tenemos un step que no es 1, lo recuperamos, sino añadimos 1
+            if (range->step != nullptr) { //misma logica, si es que tenemos un step que no es 1, lo recuperamos, sino añadimos 1
                 out << "    movq " << stepOffset << "(%rbp), %rcx" << endl;
                 out << "    addq %rcx, %rax" << endl;
             } else {
@@ -625,10 +622,17 @@ void GenCodeVisitor::visit(VarDec* stm) {
         memoria[stm->id] = offset;
         
         if (stm->value != nullptr) {
-            stm->value->accept(this);
-            if (stm->type == "Float") { //segun el tipo movemos al registro regular o al xmm0
+            // si la variable es un array, registro en arrayInfo
+            if (ArrayExp* arr = dynamic_cast<ArrayExp*>(stm->value)) {
+                arr->accept(this); // genero el array y dejo la dirección base en %rax
+                allocateArray(stm->id, arr->elements.size(), arr->type);
+                // guardo la dirección base en la variable
+                out << "    movq %rax, " << memoria[stm->id] << "(%rbp)" << endl;
+            } else if (stm->type == "Float") {
+                stm->value->accept(this);
                 out << "    movsd %xmm0, " << memoria[stm->id] << "(%rbp)" << endl;
             } else {
+                stm->value->accept(this);
                 out << "    movq %rax, " << memoria[stm->id] << "(%rbp)" << endl;
             }
         }
@@ -900,4 +904,114 @@ void GenCodeVisitor::collectConstantsFromStmt(Stm* stmt) { // Recorre una senten
             collectConstantsFromExp(ret->e);
         }
     }
+}
+
+int GenCodeVisitor::visit(ArrayMethodExp* exp) {
+    // Intentar obtener el nombre del array si es un identificador
+    IdentifierExp* idExp = dynamic_cast<IdentifierExp*>(exp->array);
+    std::string arrayName = idExp ? idExp->name : "";
+    switch (exp->method) {
+        case ArrayMethodType::INDICES: {
+            // Para .indices, solo devolvemos el tamaño (el rango lo usará el for)
+            if (!arrayName.empty() && arrayInfo.count(arrayName)) {
+                out << "    movq $" << arrayInfo[arrayName].second << ", %rax" << std::endl;
+            } else {
+                out << "    movq $0, %rax" << std::endl; // fallback
+            }
+            break;
+        }
+        case ArrayMethodType::SIZE: {
+            if (!arrayName.empty() && arrayInfo.count(arrayName)) {
+                out << "    movq $" << arrayInfo[arrayName].second << ", %rax" << std::endl;
+            } else {
+                out << "    movq $0, %rax" << std::endl; // fallback
+            }
+            break;
+        }
+    }
+    isIntegerResult = true;
+    return 0;
+}
+
+// ===================== ARRAYS =====================
+// Genera el código para crear un array (arrayOf<Int>(...))
+// En codegen.cpp
+
+// Implementación para generar código para arrayOf
+int GenCodeVisitor::visit(ArrayExp* exp) {
+    int num_elements = exp->elements.size();
+    int element_size = 8; // Usaremos 8 bytes (quad) por defecto para Int, Float (double) y Boolean
+
+    if (exp->type != "Int" && exp->type != "Float" && exp->type != "Boolean") {
+        cerr << "Error: arrayOf solo soporta Int, Float y Boolean." << endl;
+        exit(1);
+    }
+
+    // 1. Reservar espacio en el stack para el array
+    int total_size = num_elements * element_size;
+    out << "    # Creando un array de tipo " << exp->type << " con " << num_elements << " elementos" << endl;
+    out << "    subq $" << total_size << ", %rsp" << endl;
+
+    // 2. Evaluar y guardar cada elemento en el stack
+    int current_offset = 0;
+    for (Exp* element_exp : exp->elements) {
+        element_exp->accept(this); // El resultado de la expresión estará en %rax (si es Int/Bool) o %xmm0 (si es Float)
+
+        if (exp->type == "Float") {
+             if (isIntegerResult) { // Si el elemento es un Int (e.g. arrayOf<Float>(1, 2.5))
+                out << "    cvtsi2sd %rax, %xmm0  # Convertir Int a Float" << endl;
+             }
+             out << "    movsd %xmm0, " << current_offset << "(%rsp) # Guardar elemento float en el array" << endl;
+        } else { // Int o Boolean
+            if (!isIntegerResult) { // Si el elemento es un Float
+                // Aquí podrías decidir truncar el float a int o lanzar un error.
+                // Por simplicidad, lo truncamos.
+                 out << "    cvttsd2si %xmm0, %rax # Convertir (truncar) Float a Int" << endl;
+            }
+            out << "    movq %rax, " << current_offset << "(%rsp) # Guardar elemento int/bool en el array" << endl;
+        }
+
+        current_offset += element_size;
+    }
+
+    // 3. El resultado de la expresión 'arrayOf' es un puntero al inicio del array.
+    //    Dejamos esta dirección (el valor actual de %rsp) en %rax.
+    out << "    movq %rsp, %rax" << endl;
+
+    // Marcamos que el resultado es un puntero (un entero en ensamblador).
+    isIntegerResult = true;
+
+    return 0;
+}
+
+// Genera el código para acceder a un elemento del array: arr[i]
+int GenCodeVisitor::visit(ArrayAccessExp* exp) {
+    // Evaluar la expresión del array (debe dejar la dirección base en %rax)
+    exp->array->accept(this);
+    out << "    movq %rax, %rbx" << endl; // Guardar base en %rbx
+    // Evaluar el índice
+    exp->index->accept(this);
+    out << "    movq %rax, %rcx" << endl; // Índice en %rcx
+    out << "    imulq $8, %rcx" << endl; // Multiplicar por 8 (tamaño de elemento)
+    out << "    addq %rcx, %rbx" << endl; // Sumar desplazamiento
+    // Cargar el valor
+    // Para saber si es float o int, intentamos deducirlo del tipo del array
+    // Por simplicidad, asumimos int (movq), si necesitas float, ajusta aquí
+    out << "    movq (%rbx), %rax" << endl;
+    isIntegerResult = true;
+    return 0;
+}
+
+// ===================== ARRAYS HELPERS =====================
+// Implementación de allocateArray: registra el array en arrayInfo
+void GenCodeVisitor::allocateArray(const std::string& arrayName, int size, const std::string& type) {
+    arrayInfo[arrayName] = std::make_pair(type, size);
+}
+
+// Devuelve el tipo de elemento de un array por nombre
+std::string GenCodeVisitor::getArrayElementType(const std::string& arrayName) {
+    if (arrayInfo.count(arrayName)) {
+        return arrayInfo[arrayName].first;
+    }
+    return "Int";
 }

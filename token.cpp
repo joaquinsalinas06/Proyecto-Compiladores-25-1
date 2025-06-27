@@ -25,6 +25,15 @@ std::ostream& operator << ( std::ostream& outs, const Token & tok )
         case Token::NUM: outs << "TOKEN(NUM)"; break;
         case Token::DECIMAL: outs << "TOKEN(DECIMAL)"; break;
 
+        case Token::CI: outs << "TOKEN(CI)"; break;
+        case Token::CD: outs << "TOKEN(CD)"; break;
+
+        case Token::ARRAY_OF: outs << "TOKEN(ARRAY_OF)"; break;
+        case Token::GENERIC_START: outs << "TOKEN(GENERIC_START)"; break;
+        case Token::GENERIC_END: outs << "TOKEN(GENERIC_END)"; break;
+        case Token::INDICES: outs << "TOKEN(INDICES)"; break;
+        case Token::SIZE: outs << "TOKEN(SIZE)"; break;
+
         case Token::ERR: outs << "TOKEN(ERR)"; break;
 
         case Token::ASSIGN: outs << "TOKEN(ASSIGN)"; break;
@@ -55,6 +64,8 @@ std::ostream& operator << ( std::ostream& outs, const Token & tok )
         case Token::EQ: outs << "TOKEN(EQ)"; break;
         case Token::NOT_EQ: outs << "TOKEN(NOT_EQ)"; break;
         case Token::DOTDOT: outs << "TOKEN(DOTDOT)"; break;
+        case Token::DOT: outs << "TOKEN(DOT)"; break;
+
 
         case Token::IF: outs << "TOKEN(IF)"; break;
         case Token::ELSE_IF: outs << "TOKEN(ELSE_IF)"; break;
@@ -73,10 +84,11 @@ std::ostream& operator << ( std::ostream& outs, const Token & tok )
         case Token::TRUE : outs << "TOKEN(TRUE)"; break;
         case Token::FALSE : outs << "TOKEN(FALSE)"; break;
 
-        case Token::INT: outs << "TOKEN(INT)"; break;
-        case Token::FLOAT: outs << "TOKEN(FLOAT)"; break;
-        case Token::BOOLEAN: outs << "TOKEN(BOOLEAN)"; break;
-        case Token::UNIT: outs << "TOKEN(UNIT)"; break;
+        // case Token::INT: outs << "TOKEN(INT)"; break;
+        // case Token::FLOAT: outs << "TOKEN(FLOAT)"; break;
+        // case Token::BOOLEAN: outs << "TOKEN(BOOLEAN)"; break;
+        // case Token::UNIT: outs << "TOKEN(UNIT)"; break;
+        case Token::TYPE: outs << "TOKEN(TYPE)"; break;
 
         case Token::FUN: outs << "TOKEN(FUN)"; break;
         case Token::RETURN: outs << "TOKEN(RETURN)"; break;

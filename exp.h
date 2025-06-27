@@ -37,6 +37,7 @@ public:
     ~BinaryExp();
 };
 
+// Operaciones unarias con su operador ! 
 class UnaryExp : public Exp {
 public:
     Exp* e;
@@ -265,6 +266,37 @@ public:
     ForStatement(std::string id, std::string type, Exp* range, Body* body);
     int accept(Visitor* visitor) override;
     ~ForStatement();
+};
+
+// Expresión para declaración de arrays
+class ArrayExp : public Exp {
+public:
+    string type;  // Int o Float
+    vector<Exp*> elements;
+    ArrayExp(const string& type, vector<Exp*>& elements);
+    int accept(Visitor* visitor);
+    ~ArrayExp();
+};
+
+// Expresión para acceso a elementos del array
+class ArrayAccessExp : public Exp {
+public:
+    Exp* array;
+    Exp* index;
+    ArrayAccessExp(Exp* array, Exp* index);
+    int accept(Visitor* visitor);
+    ~ArrayAccessExp();
+};
+
+// Expresión para métodos de array como .size, .indices, etc.
+enum class ArrayMethodType { SIZE, INDICES };
+class ArrayMethodExp : public Exp {
+public:
+    Exp* array;
+    ArrayMethodType method;
+    ArrayMethodExp(Exp* array, ArrayMethodType method);
+    int accept(Visitor* visitor);
+    ~ArrayMethodExp();
 };
 
 #endif // EXP_H

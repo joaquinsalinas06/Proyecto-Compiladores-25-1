@@ -1,15 +1,22 @@
 #include <iostream>
 #include "exp.h"
+#include "visitor.h"
 using namespace std;
 
 Exp::~Exp() {}
 BinaryExp::BinaryExp(Exp* l, Exp* r, BinaryOp op):left(l),right(r),op(op) {
+    // Si es suma, resta, multiplicación o división, puede ser Int o Float
     if (op == PLUS_OP || op == MINUS_OP || op == MUL_OP || op == DIV_OP) {
-        type = "int";
+        if (left->has_f || right->has_f) {
+            type = "Float";
+            has_f = true; // Marcamos que tiene un float
+        } else {
+            type = "Int";
+        }
     } else {
-        type = "bool";
+        // Para el resto, lo trato como booleano
+        type = "Boolean";
     }
-    // Falta agregar el float (Verificar si el resultado es decimal)
 }
 
 BinaryExp::~BinaryExp() { 
@@ -17,6 +24,7 @@ BinaryExp::~BinaryExp() {
     delete right;
 }
 
+// El resto de los constructores y destructores son bastante directos
 UnaryExp::UnaryExp(Exp* e, UnaryOp op): e(e), op(op) {}
 UnaryExp::~UnaryExp() { 
     delete e; 
@@ -41,12 +49,11 @@ AssignStatement::~AssignStatement() {
     delete rhs;
 }
 
-// +=
+// += y -=, igual que el assign normal pero con su propio operador
 PlusAssignStatement::PlusAssignStatement(string id, Exp* e) : id(id), rhs(e) {}
 PlusAssignStatement::~PlusAssignStatement() {
     delete rhs;
 }
-// -=
 MinusAssignStatement::MinusAssignStatement(string id, Exp* e) : id(id), rhs(e) {}
 MinusAssignStatement::~MinusAssignStatement() {
     delete rhs;
@@ -125,18 +132,17 @@ Program::~Program() {
 }
 
 Stm::~Stm() {}
+
+// Esta función la uso para convertir el enum de operadores a string, para imprimir o debuggear
 string Exp::binopToChar(BinaryOp op) {
     string c = "";
     switch(op) {
         case PLUS_OP: c = "+"; break;
         case MINUS_OP: c = "-"; break;
-
         case PLUSPLUS_OP: c = "++"; break;
         case MINUSMINUS_OP: c = "--"; break;
-
         case AND_OP: c = "and"; break;
         case OR_OP: c = "or"; break;
-        
         case MUL_OP: c = "*"; break;
         case DIV_OP: c = "/"; break;
         case LT_OP: c = "<"; break;
@@ -150,7 +156,7 @@ string Exp::binopToChar(BinaryOp op) {
     return c;
 }
 
-// FunDec
+// FunDec y FunDecList, lo típico para manejar funciones
 FunDec::FunDec(string nombre, list<string> parametros, list<string> tipos_parametros, 
                string tipo_retorno, Body* cuerpo) 
     : nombre(nombre), parametros(parametros), tipos_parametros(tipos_parametros), 
@@ -160,7 +166,6 @@ FunDec::~FunDec() {
     delete cuerpo;
 }
 
-// FunDecList
 FunDecList::FunDecList() {}
 
 void FunDecList::add(FunDec* fundec) {
@@ -173,7 +178,7 @@ FunDecList::~FunDecList() {
     }
 }
 
-// FCallExp  
+// Llamadas a función, igual, nada raro
 FCallExp::FCallExp(string nombre, list<Exp*> argumentos) 
     : nombre(nombre), argumentos(argumentos) {}
 
@@ -183,7 +188,6 @@ FCallExp::~FCallExp() {
     }
 }
 
-// FCallStm
 FCallStm::FCallStm(string nombre, list<Exp*> argumentos) 
     : nombre(nombre), argumentos(argumentos) {}
 
@@ -193,9 +197,28 @@ FCallStm::~FCallStm() {
     }
 }
 
-// ReturnStatement
+// ReturnStatement, igual de directo
 ReturnStatement::ReturnStatement(Exp* e) : e(e) {}
 
 ReturnStatement::~ReturnStatement() {
     if (e) delete e;
+}
+
+// Arrays: los constructores y destructores solo limpian los elementos
+ArrayExp::ArrayExp(const string& type, vector<Exp*>& elements) : type(type), elements(elements) {}
+ArrayExp::~ArrayExp() {
+    for (auto element : elements) {
+        delete element;
+    }
+}
+
+ArrayAccessExp::ArrayAccessExp(Exp* array, Exp* index) : array(array), index(index) {}
+ArrayAccessExp::~ArrayAccessExp() {
+    delete array;
+    delete index;
+}
+
+ArrayMethodExp::ArrayMethodExp(Exp* array, ArrayMethodType method) : array(array), method(method) {}
+ArrayMethodExp::~ArrayMethodExp() {
+    delete array;
 }

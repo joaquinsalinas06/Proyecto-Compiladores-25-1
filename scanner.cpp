@@ -62,64 +62,62 @@ Token* Scanner::nextToken() {
         }
     }
 
-    else if (isalpha(c)) {
+    else if (isalpha(c) || c == '_') {
         current++;
-        while (current < input.length() && isalnum(input[current]))
+        while (current < input.length() && (isalnum(input[current]) || input[current] == '_')) 
             current++;
-        string word = input.substr(first, current - first);
-        
-        if (word == "Int") {
-            token = new Token(Token::INT, word, 0, word.length());
-        } else if (word == "Float") {
-            token = new Token(Token::FLOAT, word, 0, word.length());
-        } else if (word == "Boolean") {
-            token = new Token(Token::BOOLEAN, word, 0, word.length());
-        } else if (word == "Unit") {
-            token = new Token(Token::UNIT, word, 0, word.length());
-        } else if (word == "print") {
-            token = new Token(Token::PRINT, word, 0, word.length());
-        } else if (word == "println") {
-            token = new Token(Token::PRINTLN, word, 0, word.length());
-        } else if (word == "if") {
-            token = new Token(Token::IF, word, 0, word.length());
-        } else if (word == "else") {
-            token = new Token(Token::ELSE, word, 0, word.length());
-        } else if (word == "else if") {
-            token = new Token(Token::ELSE_IF, word, 0, word.length());
-        } else if (word == "while") {
-            token = new Token(Token::WHILE, word, 0, word.length());
-        } else if (word == "do") {
-            token = new Token(Token::DO, word, 0, word.length());
-        } else if (word == "for") {
-            token = new Token(Token::FOR, word, 0, word.length());
-        } else if (word == "in") {
-            token = new Token(Token::IN, word, 0, word.length());
-        } else if (word == "until") {
-            token = new Token(Token::UNTIL, word, 0, word.length());
-        } else if (word == "downTo") {
-            token = new Token(Token::DOWNTO, word, 0, word.length());
-        } else if (word == "step") {
-            token = new Token(Token::STEP, word, 0, word.length());
-        } else if (word == "var") {
-            token = new Token(Token::VAR, word, 0, word.length());
-        } else if (word == "true") {
-            token = new Token(Token::TRUE, word, 0, word.length());
-        } else if (word == "false") {
-            token = new Token(Token::FALSE, word, 0, word.length());
-        } else if (word == "and") {
-            token = new Token(Token::AND, word, 0, word.length());
-        } else if (word == "or") {
-            token = new Token(Token::OR, word, 0, word.length());
-        } else if (word == "fun") {
-            token = new Token(Token::FUN, word, 0, word.length());
-        } else if (word == "return") {
-            token = new Token(Token::RETURN, word, 0, word.length());
+        string lex = input.substr(first, current - first);
+        if (lex == "var") return new Token(Token::VAR);
+        else if (lex == "Int" || lex == "Float" || lex == "Boolean" || lex == "Unit") {
+            token = new Token(Token::TYPE, lex, 0, lex.length());
+        } else if (lex == "print") {
+            token = new Token(Token::PRINT, lex, 0, lex.length());
+        } else if (lex == "println") {
+            token = new Token(Token::PRINTLN, lex, 0, lex.length());
+        } else if (lex == "if") {
+            token = new Token(Token::IF, lex, 0, lex.length());
+        } else if (lex == "else") {
+            token = new Token(Token::ELSE, lex, 0, lex.length());
+        } else if (lex == "else if") {
+            token = new Token(Token::ELSE_IF, lex, 0, lex.length());
+        } else if (lex == "while") {
+            token = new Token(Token::WHILE, lex, 0, lex.length());
+        } else if (lex == "do") {
+            token = new Token(Token::DO, lex, 0, lex.length());
+        } else if (lex == "for") {
+            token = new Token(Token::FOR, lex, 0, lex.length());
+        } else if (lex == "in") {
+            token = new Token(Token::IN, lex, 0, lex.length());
+        } else if (lex == "until") {
+            token = new Token(Token::UNTIL, lex, 0, lex.length());
+        } else if (lex == "downTo") {
+            token = new Token(Token::DOWNTO, lex, 0, lex.length());
+        } else if (lex == "step") {
+            token = new Token(Token::STEP, lex, 0, lex.length());
+        } else if (lex == "true") {
+            token = new Token(Token::TRUE, lex, 0, lex.length());
+        } else if (lex == "false") {
+            token = new Token(Token::FALSE, lex, 0, lex.length());
+        } else if (lex == "and") {
+            token = new Token(Token::AND, lex, 0, lex.length());
+        } else if (lex == "or") {
+            token = new Token(Token::OR, lex, 0, lex.length());
+        } else if (lex == "fun") {
+            token = new Token(Token::FUN, lex, 0, lex.length());
+        } else if (lex == "return") {
+            token = new Token(Token::RETURN, lex, 0, lex.length());
+        } else if (lex == "arrayOf") {
+            token = new Token(Token::ARRAY_OF, lex, 0, lex.length());
+        } else if (lex == "indices") {
+            token = new Token(Token::INDICES, lex, 0, lex.length());
+        } else if (lex == "size") {
+            token = new Token(Token::SIZE, lex, 0, lex.length());
         } else {
-            token = new Token(Token::ID, word, 0, word.length());
+            token = new Token(Token::ID, lex, 0, lex.length());
         }
     }
 
-    else if (strchr(":+-*/()=;,<>{}.!", c)) {
+    else if (strchr(":+-*/()=;,<>{}.![]", c)) {
         switch(c) {
             case '+':
                 if (current + 1 < input.length() && input[current + 1] == '=') {
@@ -164,26 +162,33 @@ Token* Scanner::nextToken() {
                 }
                 break;            
             case '<':
-                if (current + 1 < input.length() && input[current + 1] == '=') {
-                    token = new Token(Token::LE, "<=", 0, 2);
+                current++;
+                if (current < input.length() && input[current] == '=') {
                     current++;
-                } else {
-                    token = new Token(Token::LT, c);
-                } break;
+                    return new Token(Token::LE);
+                }
+                return new Token(Token::GENERIC_START);
             case '>':
-                if (current + 1 < input.length() && input[current + 1] == '=') {
-                    token = new Token(Token::GE, ">=", 0, 2);
+                current++;
+                if (current < input.length() && input[current] == '=') {
                     current++;
-                } else {
-                    token = new Token(Token::GT, c);
-                } break;                case '.':
+                    return new Token(Token::GE);
+                }
+                return new Token(Token::GENERIC_END);
+            case '[':
+                current++;
+                return new Token(Token::CI);
+            case ']':
+                current++;
+                return new Token(Token::CD);
+            case '.':
                 if (current + 1 < input.length() && input[current + 1] == '.') {
                 
                     size_t start = current;
                     current += 2;
                     return new Token(Token::DOTDOT, input, start, 2);
                 } else {
-                    token = new Token(Token::ERR, c);
+                    token = new Token(Token::DOT, c);
                 }
                 break;
             case ';': token = new Token(Token::PC, c); break;
