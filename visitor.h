@@ -164,39 +164,4 @@ public:
     int visit(ArrayMethodExp* exp) override;
 };
 
-class CodeGenVisitor : public Visitor {
-public:
-    int visit(BinaryExp* exp) override;
-    int visit(UnaryExp* exp) override;
-    int visit(NumberExp* exp) override;
-    int visit(DecimalExp* exp) override;
-    int visit(BoolExp* exp) override;
-    int visit(IdentifierExp* exp) override;
-    int visit(RangeExp* exp) override;
-    void visit(AssignStatement* stm) override;
-
-    void visit(PlusAssignStatement* stm) override; // PlusAssignStatement
-    void visit(MinusAssignStatement* stm) override; // MinusAssignStatement
-    void visit(ArrayAssignStatement* stm) override; // ArrayAssignStatement
-
-    void visit(PrintStatement* stm) override;
-    void visit(IfStatement* stm) override; // IfStatement
-    void visit(WhileStatement* stm) override; // WhileStatement
-    void visit(ForStatement* stm) override; // ForStatement
-    void visit(VarDec* stm) override;
-    void visit(VarDecList* stm) override;
-    void visit(StatementList* stm) override;
-    void visit(Body* b) override;
-    void visit(Program* program) override;
-    void visit(FunDec* fundec) override;
-    void visit(FunDecList* fundecs) override;
-    int visit(FCallExp* fcall) override;
-    void visit(FCallStm* fcall) override;
-    void visit(ReturnStatement* retstm) override;
-
-    int visit(ArrayExp* exp) override;
-    int visit(ArrayAccessExp* exp) override;
-    int visit(ArrayMethodExp* exp) override;
-};
-
 #endif // VISITOR_H

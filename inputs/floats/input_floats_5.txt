@@ -1,11 +1,10 @@
 var temperature : Float = 25.5f
 var increment : Float = 2.8f
 
-fun main(): Int {
+fun main() {
     temperature += increment
     println(temperature)
-    
+
     temperature -= 5.0f
     println(temperature)
-    return 0
 }

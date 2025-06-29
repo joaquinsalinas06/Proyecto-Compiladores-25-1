@@ -1,10 +1,9 @@
 var total : Int = 0
 
-fun main(): Int {
+fun main(){
     for (i in 1..5) {
         total += i
         println(i)
     }
     println(total)
-    return 0
 }

@@ -16,8 +16,6 @@ using namespace std;
 // UNIT_TYPE = 4
 // RANGE_TYPE = 5
 
-TypeChecker::TypeChecker() : retorno("") {}
-
 void TypeChecker::check(Program* program){
     env.add_level();
     program->accept(this);
@@ -388,6 +386,16 @@ void TypeChecker::visit(VarDec* stm) {
         exit(1);
     }
 
+    if (globales && stm->value == nullptr) {
+        cout << "Error: Las variables globales deben ser inicializadas. Variable '" << stm->id << "' requiere un valor inicial." << endl;
+        exit(1);
+    }
+
+    if (stm->type.empty()) {
+        cout << "Error: Variable '" << stm->id << "' debe tener un tipo explícito. No se permite inferencia de tipos." << endl;
+        exit(1);
+    }
+
     if (stm->value != nullptr) { //Si es que hay algun valor que se le esta asignando, hay que verificar que sea compatible
         int init_type = stm->value->accept(this);
         if (stm->type == "Int" && init_type == INT_TYPE) { 
@@ -457,7 +465,9 @@ void TypeChecker::visit(Program* program) {
     
     //Analizar todas las globales
     if (program->vardecs) {
+        globales = true;
         program->vardecs->accept(this);
+        globales = false;
     }
     
     //Analizar todas las funciones que se tienen
@@ -476,6 +486,11 @@ void TypeChecker::visit(FunDec* fundec) {
         fundec->tipo_retorno != "Boolean" && fundec->tipo_retorno != "Unit") { //Verificar si es que el tipo de retorno es valido
         cout << "Error: Tipo de retorno no válido en función " << fundec->nombre 
              << ": " << fundec->tipo_retorno << endl;
+        exit(1);
+    }
+    if (fundec->nombre == "main" && fundec->tipo_retorno != "Unit") {
+        cout << "Error: La función main solo puede tener tipo de retorno Unit. Tipo encontrado: " 
+             << fundec->tipo_retorno << endl;
         exit(1);
     }
     

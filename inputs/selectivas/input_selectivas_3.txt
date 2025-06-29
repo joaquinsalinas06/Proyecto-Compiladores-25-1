@@ -1,12 +1,11 @@
 var counter : Int = 0
 var sum : Int = 0
 
-fun main(): Int {
+fun main() {
     while (counter < 4) {
         sum += counter
         println(counter)
         println(sum)
         counter += 1
     }
-    return 0
 }

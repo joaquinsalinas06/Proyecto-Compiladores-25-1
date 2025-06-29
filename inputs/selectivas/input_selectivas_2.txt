@@ -1,7 +1,7 @@
 var age : Int = 20
-var status : Int
+var status : Int = 0
 
-fun main(): Int {
+fun main() {
     if (age >= 18) {
         if (age >= 65) {
             status = 3
@@ -14,5 +14,4 @@ fun main(): Int {
         status = 1
         println(status)
     }
-    return 0
 }

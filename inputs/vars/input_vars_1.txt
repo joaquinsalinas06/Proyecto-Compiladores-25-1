@@ -1,10 +1,9 @@
 var x : Int = 10
 var y : Int = 20
 
-fun main(): Int {
+fun main(){
     println(x)
     println(y)
     println(x + y)
-    return 0
 }
 

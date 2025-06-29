@@ -178,7 +178,7 @@ int PrintVisitor::visit(NumberExp* exp) {
 }
 
 int PrintVisitor::visit(DecimalExp* exp) {
-    cout << fixed << setprecision(1) << exp->value << "f";  
+    cout << exp->value << "f";  
     return 0; 
 }
 
@@ -734,11 +734,7 @@ void EVALVisitor::visit(ArrayAssignStatement* stm) {
 void EVALVisitor::visit(PrintStatement* stm) {
     int t = stm->e->accept(this); // Evalúa la expresión
     if (t == 2) { 
-        if (lastFloat == static_cast<int>(lastFloat)) {
-            cout << static_cast<int>(lastFloat); // Imprime como entero sin decimales
-        } else {
-            cout << fixed << setprecision(1) << lastFloat; // Imprime con decimales
-        }
+        cout << lastFloat; // Imprime con precisión natural completa
     } else if (t == 1) { 
         cout << lastInt;
     } else if (t == 3) { 

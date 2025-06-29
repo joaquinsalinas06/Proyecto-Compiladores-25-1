@@ -1,16 +1,15 @@
 fun factorial(n: Int): Int {
-    if (n <= 1) {
-        return 1
-    } else {
-        return n * factorial(n - 1)
-    }
+  if (n <= 1) {
+      return 1
+  } else {
+      return n * factorial(n - 1)
+  }
 }
 
-fun main(): Int {
-    var num : Int = 5
-    var result : Int
-    result = factorial(num)
-    println(num)
-    println(result)
-    return 0
+fun main() {
+  var num : Int = 5
+  var result : Int
+  result = factorial(num)
+  println(num)
+  println(result)
 }

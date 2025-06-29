@@ -1,10 +1,9 @@
 var squares : Int = 0
 
-fun main(): Int {
+fun main() {
     for (num in 2..4) {
         squares = num * num
         println(num)
         println(squares)
     }
-    return 0
 }

@@ -1,9 +1,8 @@
 var a : Int = 10
 var b : Int = 4
 
-fun main(): Int {
+fun main() {
     println(a / b)
     println(a * b / 2)
     println((a + b) / (a - b))
-    return 0
 }

@@ -1,12 +1,11 @@
 fun mostrar(): Int {
-    println(42)
-    return 1
+  println(42)
+  return 1
 }
 
-fun main(): Int {
-    var result : Int
-    result = mostrar()
-    println(result)
-    return 0
+fun main(){
+  var result : Int
+  result = mostrar()
+  println(result)
 }
 

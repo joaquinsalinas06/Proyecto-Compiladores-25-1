@@ -44,7 +44,7 @@ void GenCodeVisitor::visit(Program* program) {
     
     out << ".data" << endl;
     out << "print_fmt: .string \"%ld\\n\"" << endl;
-    out << "print_float_fmt: .string \"%.1f\\n\"" << endl;
+    out << "print_float_fmt: .string \"%.6g\\n\"" << endl;
     out << "print_bool_true: .string \"true\\n\"" << endl;
     out << "print_bool_false: .string \"false\\n\"" << endl;
 

@@ -12,12 +12,10 @@ class FunDec;
 class TypeChecker : public Visitor {
     Environment env;
     std::unordered_map<std::string, FunDec*> funciones;
-    std::string retorno;
+    std::string retorno = "";
+    bool globales = false; // Indica si se están verificando variables globales
     
-public:
-    
-    TypeChecker();
-    
+public:    
     void check(Program* program);
     
     // Métodos visit para expresiones
