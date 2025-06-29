@@ -2,10 +2,10 @@
 
 ## Integrantes 
 
-| Name              | GitHub User                                              |  Email                                                                |
+| Nombre              | Codigo UTEC                                           |  Email                                                                |
 |-------------------|----------------------------------------------------------|-----------------------------------------------------------------------|
-| Joaquin Salinas   | [joaquinsalinas06](https://github.com/joaquinsalinas06)  |[joaquin.salinas@utec.edu.pe](mailto:joaquin.salinas@utec.edu.pe)      |
-| Guillermo Galvez  | [KarTaGo124](https://github.com/KarTaGo124)              |[jose.galvez.p@utec.edu.pe](mailto:jose.galvez.p@utec.edu.pe)          |
+| Joaquin Mauricio Salinas Salas  | 202210604 |[joaquin.salinas@utec.edu.pe](mailto:joaquin.salinas@utec.edu.pe)      |
+| Gilver Alexis Raza Estrada  |           |[gilver.raza@utec.edu.pe](mailto:gilver.raza@utec.edu.pe)          |
 
 
 ## Resumen del Proyecto
@@ -207,7 +207,7 @@ int EVALVisitor::visit(ArrayAccessExp* exp) {
 
 #### Diseño Específico
 
-El sistema de arrays implementa se fuerza a que sea de un tipado único, donde todos los elementos de un array deben pertenecer al mismo tipo declarado. Esta restricción se verifica durante la fase de análisis semántico, rechazando arrays con elementos mixtos y garantizando coherencia de tipos en tiempo de compilación.
+El sistema de arrays fuerza a que este sea de un tipado único, donde todos los elementos de un array deben pertenecer al mismo tipo declarado. Esta restricción se verifica durante la fase de análisis semántico, rechazando arrays con elementos mixtos y garantizando coherencia de tipos en tiempo de compilación.
 
 La indexación utiliza **índices base cero**, donde `array[0]` representa el primer elemento. Esta convención se mantiene consistente tanto en el acceso directo como en los métodos `.indices`.
 
