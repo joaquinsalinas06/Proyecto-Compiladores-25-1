@@ -217,17 +217,66 @@ Los **métodos incorporados** forman parte integral del sistema de tipos: `.size
 
 ## Uso del Compilador
 
-### Compilación
+### Sistema de Construcción Automatizado
+
+El proyecto incluye un archivo (`make.py`) que automatiza la compilación, ejecución y gestión de pruebas del compilador.
+
+#### Uso Básico
+
 ```bash
-g++ -std=c++11 -o compiler main.cpp scanner.cpp parser.cpp typechecker.cpp visitor.cpp codegen.cpp exp.cpp token.cpp
+# Mostrar ayuda completa
+python make.py help
+
+# Ejecutar todas las pruebas
+python make.py all
+
+# Ejecutar categoría específica
+python make.py floats
+
+# Ejecutar archivo individual
+python make.py test_ejemplo.txt
 ```
 
-### Ejecución
+#### Opciones Avanzadas
+
 ```bash
-./compiler archivo.txt
+# Ejecutar solo pasos específicos
+python make.py --steps=1,3 floats        # Solo scanner y print visitor
+python make.py --steps=5 all             # Solo generación de assembly
+python make.py --steps=4 arrays          # Solo evaluación
+
+# Gestión de archivos generados
+python make.py --clean                   # Limpiar todos los .s
+python make.py --clean=floats            # Limpiar solo floats
+
+# Omitir recompilación
+python make.py --no-compile vars         # Ejecutar sin compilar
 ```
+
+#### Integración con WSL
+
+Si es que se ejecuta en Windows y se quiere probar los archivos generados por gencode en Ubuntu:
+
+```bash
+# Generar assembly y script de ejecución para WSL
+python make.py --steps=5 --copy-wsl=/mnt/c/Users/tu_usuario/wsl_folder all
+
+# Luego en WSL Ubuntu:
+cd /mnt/c/Users/tu_usuario/wsl_folder
+./build_all.sh                          # Script auto-generado con permisos correctos
+```
+
+#### Pasos de Compilación Disponibles
+
+1. **Scanner** - Análisis léxico
+2. **Parser** - Análisis sintáctico  
+3. **Print Visitor** - Impresión del AST
+4. **Eval Visitor** - Evaluación/interpretación
+5. **Assembly Generation** - Generación de código assembly
+
 
 ### Ejemplo de Código Soportado
+
 ```kotlin
 var numbers: Array<Float> = arrayOf<Float>(1.5f, 2.7f, 3.14f)
 var sum: Float = 0.0f

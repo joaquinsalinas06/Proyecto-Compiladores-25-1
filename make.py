@@ -267,27 +267,78 @@ def execute_all(steps_to_run=None, wsl_path=None):
     print('='*80)
 
 def build_wsl_script(wsl_path, subfolder=None):
-    # If subfolder is given, generate the script in that subfolder
+    """Genera script de bash optimizado para WSL con permisos correctos y formato Unix"""
     script_dir = os.path.join(wsl_path, subfolder) if subfolder else wsl_path
     os.makedirs(script_dir, exist_ok=True)
     script_path = os.path.join(script_dir, "build_all.sh")
-    with open(script_path, "w", encoding="utf-8") as f:
-        f.write("#!/bin/bash\n")
-        f.write("# Compila y ejecuta todos los archivos .s en el directorio actual\n\n")
-        f.write("for sfile in *.s; do\n")
-        f.write("    if [ -f \"$sfile\" ]; then\n")
-        f.write("        exe=\"${sfile%.s}.o\"\n")
-        f.write("        echo \"Compilando $sfile -> $exe\"\n")
-        f.write("        gcc \"$sfile\" -o \"$exe\"\n")
-        f.write("        chmod +x \"$exe\"\n")
-        f.write("        echo \"----- Ejecutando $exe -----\"\n")
-        f.write("        ./\"$exe\"\n")
-        f.write("        echo \"---------------------------\"\n")
-        f.write("    fi\n")
-        f.write("done\n\n")
-        f.write("echo \"Compilación y ejecución de todos los .s finalizada.\"\n")
-    os.chmod(script_path, 0o755)
-    print(f"Script generado: {script_path}")
+    
+    # Generar contenido del script con formato Unix (LF)
+    script_content = [
+        "#!/bin/bash",
+        "# Script generado automáticamente para compilar y ejecutar archivos .s",
+        "# Uso: ./build_all.sh [archivo.s] o ./build_all.sh (para todos)",
+        "",
+        "set -e  # Salir si hay errores",
+        "",
+        "# Función para compilar y ejecutar un archivo .s",
+        "compile_and_run() {",
+        "    local sfile=\"$1\"",
+        "    if [ ! -f \"$sfile\" ]; then",
+        "        echo \"❌ Archivo no encontrado: $sfile\"",
+        "        return 1",
+        "    fi",
+        "    ",
+        "    local exe=\"${sfile%.s}\"",
+        "    echo \"🔨 Compilando: $sfile -> $exe\"",
+        "    ",
+        "    if gcc \"$sfile\" -o \"$exe\" 2>/dev/null; then",
+        "        chmod +x \"$exe\"",
+        "        echo \"✅ Compilación exitosa\"",
+        "        echo \"🚀 Ejecutando: $exe\"",
+        "        echo \"--------------------------------------------------\"",
+        "        ./\"$exe\"",
+        "        echo \"--------------------------------------------------\"",
+        "        echo \"✅ Ejecución completada: $exe\"",
+        "        echo",
+        "    else",
+        "        echo \"❌ Error en compilación de: $sfile\"",
+        "        return 1",
+        "    fi",
+        "}",
+        "",
+        "# Script principal",
+        "if [ $# -eq 0 ]; then",
+        "    # Sin argumentos: procesar todos los archivos .s",
+        "    echo \"🔍 Buscando archivos .s en el directorio actual...\"",
+        "    files=(*.s)",
+        "    if [ ! -e \"${files[0]}\" ]; then",
+        "        echo \"❌ No se encontraron archivos .s en el directorio actual\"",
+        "        exit 1",
+        "    fi",
+        "    ",
+        "    echo \"📂 Encontrados ${#files[@]} archivos .s\"",
+        "    for sfile in \"${files[@]}\"; do",
+        "        compile_and_run \"$sfile\"",
+        "    done",
+        "    echo \"🎉 Procesamiento completado para todos los archivos\"",
+        "else",
+        "    # Con argumentos: procesar archivo específico",
+        "    compile_and_run \"$1\"",
+        "fi"
+    ]
+    
+    # Escribir archivo con formato Unix (LF solamente)
+    with open(script_path, "w", newline='\n', encoding="utf-8") as f:
+        f.write('\n'.join(script_content) + '\n')
+    
+    # Asignar permisos de ejecución
+    try:
+        os.chmod(script_path, 0o755)
+        print(f"✅ Script WSL generado: {script_path}")
+        print(f"💡 Para usar en WSL: chmod +x build_all.sh && ./build_all.sh")
+    except Exception as e:
+        print(f"⚠️  Script generado pero error en permisos: {e}")
+        print(f"📝 Ejecuta en WSL: chmod +x {os.path.basename(script_path)}")
 
 def parse_steps(steps_str):
     if not steps_str:
@@ -301,52 +352,77 @@ def parse_steps(steps_str):
 
 def show_help():
     os_info = "Windows" if IS_WINDOWS else "Linux/Unix"
-    print(f"USO: python make.py [opciones] [categoría|all] (Detectado: {os_info})")
-    print("\nOpciones:")
-    print("  --no-compile          - No compilar antes de ejecutar")
-    print("  --steps=1,2,3         - Mostrar solo los pasos especificados")
-    print("  --clean               - Limpiar todos los archivos .s")
-    print("  --clean=<categoría>   - Limpiar archivos .s de una categoría")
-    print("  --copy-wsl=<ruta>     - Copiar todos los .s a WSL y generar script build_all.sh")
-    print("  help                  - Muestra esta ayuda")
-    print("\nPasos disponibles:")
+    print(f"🔧 SISTEMA DE CONSTRUCCIÓN DEL COMPILADOR KOTLIN-LIKE")
+    print(f"USO: python make.py [opciones] [categoría|archivo.txt|all] (SO: {os_info})")
+    print("\n📋 OPCIONES:")
+    print("  --no-compile          - Omitir compilación del proyecto")
+    print("  --steps=1,2,3         - Ejecutar solo pasos específicos (ver lista abajo)")
+    print("  --clean               - Eliminar todos los archivos .s generados")
+    print("  --clean=<categoría>   - Eliminar archivos .s de una categoría específica")
+    print("  --copy-wsl=<ruta>     - Copiar archivos .s a WSL y generar build_all.sh")
+    print("  help                  - Mostrar esta ayuda")
+    print("\n🔍 PASOS DE COMPILACIÓN DISPONIBLES:")
     for num, name in execution_options.items():
         print(f"  {num} - {name}")
-    print("\nCategorías disponibles:")
+    print("\n📁 CATEGORÍAS DE PRUEBAS:")
     for category, path in input_categories.items():
-        exists = "[OK]" if os.path.exists(path) else "[--]"
-        print(f"  {category:<15} - {path} {exists}")
-    print("\nEjemplos:")
-    print("  python make.py all                    # Ejecutar todo")
-    print("  python make.py vars                   # Solo variables")
-    print("  python make.py --no-compile vars      # Variables sin compilar")
-    print("  python make.py --steps=1,3 vars       # Solo scanner y print")
-    print("  python make.py --steps=5 all          # Solo assembly")
+        exists = "✅" if os.path.exists(path) else "❌"
+        file_count = len([f for f in os.listdir(path) if f.endswith('.txt')]) if os.path.exists(path) else 0
+        print(f"  {category:<12} - {path} {exists} ({file_count} archivos)")
+    
+    print("\n📘 EJEMPLOS DE USO:")
+    print("  # Ejecución básica")
+    print("  python make.py all                    # Ejecutar todas las categorías")
+    print("  python make.py floats                 # Solo categoría floats")
+    print("  python make.py test_file.txt          # Archivo específico")
+    print("")
+    print("  # Con filtros de pasos")
+    print("  python make.py --steps=1,3 vars       # Solo scanner y print visitor")
+    print("  python make.py --steps=5 all          # Solo generación de assembly")
+    print("  python make.py --steps=4 floats       # Solo evaluación de floats")
+    print("")
+    print("  # Gestión de archivos")
     print("  python make.py --clean                # Limpiar todos los .s")
-    print("  python make.py --clean=vars           # Limpiar .s de vars")
-    print("  python make.py --copy-wsl=\\wsl.localhost\\Ubuntu\\home\\joaqu   # Copiar .s a WSL y generar script")
+    print("  python make.py --clean=arrays         # Limpiar solo arrays")
+    print("  python make.py --no-compile vars      # Ejecutar sin recompilar")
+    print("")
+    print("  # Para WSL/Ubuntu")
+    print("  python make.py --steps=5 --copy-wsl=/mnt/c/Users/tu_usuario/wsl_folder all")
+    
     if IS_WINDOWS:
-        print("\n🐧 Para usar los archivos .s generados en Ubuntu:")
-        print("  1. python make.py --steps=5 all      # Generar archivos .s")
-        print("  2. Copiar archivos .s a Ubuntu")
-        print("  3. En Ubuntu: gcc archivo.s -o ejecutable")
-        print("  4. En Ubuntu: ./ejecutable")
+        print("\n🐧 FLUJO RECOMENDADO PARA WSL:")
+        print("  1. python make.py --steps=5 all")
+        print("     → Genera todos los archivos .s")
+        print("  2. python make.py --copy-wsl=/mnt/c/tu_ruta/wsl floats")
+        print("     → Copia .s a WSL y genera build_all.sh automáticamente")
+        print("  3. En WSL Ubuntu:")
+        print("     cd /mnt/c/tu_ruta/wsl")
+        print("     ./build_all.sh")
+        print("     → Compila y ejecuta automáticamente (sin chmod/dos2unix)")
     else:
-        print("\n🐧 Compilación y ejecución en Linux:")
-        print("  1. python make.py --steps=5 all      # Generar archivos .s")
-        print("  2. gcc archivo.s -o ejecutable       # Compilar assembly")
-        print("  3. ./ejecutable                      # Ejecutar")
+        print("\n🐧 EJECUCIÓN EN LINUX NATIVO:")
+        print("  python make.py --steps=5 all         # Generar .s")
+        print("  gcc archivo.s -o ejecutable          # Compilar")
+        print("  ./ejecutable                         # Ejecutar")
+    
+    print("\n💡 NOTAS:")
+    print("  • El script build_all.sh se genera automáticamente con formato Unix")
+    print("  • No necesitas chmod +x ni dos2unix en el script generado")
+    print("  • Usa --steps para acelerar el desarrollo (ej: --steps=4 para solo evaluar)")
+    print("  • Los archivos vacíos se omiten automáticamente")
 
 def main():
     args = sys.argv[1:]
     if not args:
         show_help()
         return
+    
     should_compile = True
     steps_to_run = None
     clean_mode = None
-    wsl_path = r"\\wsl.localhost\\Ubuntu\\home\\joaqu"  # Cambia aquí si tu ruta WSL es diferente
+    wsl_path = None
     target = None
+    
     i = 0
     while i < len(args):
         arg = args[i]
@@ -359,44 +435,79 @@ def main():
             steps_str = arg.split("=", 1)[1]
             steps_to_run = parse_steps(steps_str)
             if steps_to_run is None:
-                print("Error: Pasos inválidos. Use números del 1-5 separados por comas.")
+                print("❌ Error: Pasos inválidos. Use números del 1-5 separados por comas.")
+                print("   Ejemplo: --steps=1,3,5")
                 return
         elif arg == "--clean":
             clean_mode = "all"
         elif arg.startswith("--clean="):
             clean_mode = arg.split("=", 1)[1]
+        elif arg.startswith("--copy-wsl="):
+            wsl_path = arg.split("=", 1)[1]
         elif arg in input_categories or arg == "all":
             target = arg
+        elif arg.endswith('.txt'):
+            # Archivo específico
+            if os.path.exists(arg):
+                target = arg
+            else:
+                print(f"❌ Error: Archivo no encontrado: {arg}")
+                return
         else:
-            print(f"Opción no reconocida: {arg}")
-            show_help()
+            print(f"❌ Opción no reconocida: {arg}")
+            print("💡 Usa 'python make.py help' para ver opciones disponibles")
             return
         i += 1
+    
+    # Manejar modo de limpieza
     if clean_mode is not None:
         if clean_mode == "all":
             clean_assembly_files()
         else:
             clean_assembly_files(clean_mode)
         return
+    
+    # Verificar que se especificó un objetivo
     if target is None:
-        print("Error: Debe especificar una categoría o 'all'")
-        show_help()
+        print("❌ Error: Debe especificar una categoría, archivo o 'all'")
+        print("💡 Ejemplos:")
+        print("   python make.py floats")
+        print("   python make.py test_file.txt") 
+        print("   python make.py all")
         return
+    
+    # Compilar si es necesario
     if should_compile and not compile_project():
         return
+    
+    # Mostrar información de pasos filtrados
     if steps_to_run:
         step_names = [execution_options[s] for s in steps_to_run]
-        print(f"Mostrando solo: {', '.join(step_names)}\n")
+        print(f"🔍 Ejecutando solo: {', '.join(step_names)}\n")
+    
+    # Ejecutar según el tipo de objetivo
     if target == "all":
         execute_all(steps_to_run, wsl_path)
-    else:
+    elif target in input_categories:
         execute_category(target, steps_to_run, wsl_path)
-    # Generar script de build en WSL si hubo paso 5
-    if steps_to_run and ((5 in steps_to_run) or (4 in steps_to_run)):
+    elif target.endswith('.txt'):
+        # Archivo específico
+        execute_file(target, steps_to_run, wsl_path)
+    else:
+        print(f"❌ Error: Objetivo no reconocido: {target}")
+        return
+    
+    # Generar script WSL si se especificó y se generó assembly
+    if wsl_path and steps_to_run and 5 in steps_to_run:
+        print(f"\n🔄 Generando script WSL en: {wsl_path}")
         if target and target in input_categories and target != "all":
             build_wsl_script(wsl_path, input_categories[target])
         else:
             build_wsl_script(wsl_path)
+    elif wsl_path and not steps_to_run:
+        # Si no hay steps especificados, asumir que se quiere el script
+        print(f"\n🔄 Generando script WSL en: {wsl_path}")
+        build_wsl_script(wsl_path)
 
 if __name__ == "__main__":
     main()
