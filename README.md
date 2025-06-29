@@ -5,7 +5,7 @@
 | Nombre              | Codigo UTEC                                           |  Email                                                                |
 |-------------------|----------------------------------------------------------|-----------------------------------------------------------------------|
 | Joaquin Mauricio Salinas Salas  | 202210604 |[joaquin.salinas@utec.edu.pe](mailto:joaquin.salinas@utec.edu.pe)      |
-| Gilver Alexis Raza Estrada  |           |[gilver.raza@utec.edu.pe](mailto:gilver.raza@utec.edu.pe)          |
+| Gilver Alexis Raza Estrada  | 202020129 |[gilver.raza@utec.edu.pe](mailto:gilver.raza@utec.edu.pe)          |
 
 
 ## Resumen del Proyecto
