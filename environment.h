@@ -175,22 +175,22 @@ public:
     // ARRAYS
     void add_array(string var, const vector<int>& val) {
         array_int_levels.back()[var] = val;
-        type_levels.back()[var] = "arrayOf<Int>";
+        type_levels.back()[var] = "Array<Int>";
     }
     void add_array(string var, const vector<float>& val) {
         array_float_levels.back()[var] = val;
-        type_levels.back()[var] = "arrayOf<Float>";
+        type_levels.back()[var] = "Array<Float>";
     }
     void add_array(string var, const vector<bool>& val) {
         array_bool_levels.back()[var] = val;
-        type_levels.back()[var] = "arrayOf<Boolean>";
+        type_levels.back()[var] = "Array<Boolean>";
     }
     void add_array(string var, string type) {
-        if (type == "arrayOf<Int>") {
+        if (type == "Array<Int>") {
             array_int_levels.back()[var] = vector<int>();
-        } else if (type == "arrayOf<Float>") {
+        } else if (type == "Array<Float>") {
             array_float_levels.back()[var] = vector<float>();
-        } else if (type == "arrayOf<Boolean>") {
+        } else if (type == "Array<Boolean>") {
             array_bool_levels.back()[var] = vector<bool>();
         }
         type_levels.back()[var] = type;
@@ -203,7 +203,7 @@ public:
             }
             n--;
         }
-        throw runtime_error("arrayOf<Int> no encontrado: " + var);
+        throw runtime_error("Array<Int> no encontrado: " + var);
     }
     vector<float>& lookup_array_float(string var) {
         int n = array_float_levels.size() - 1;
@@ -213,7 +213,7 @@ public:
             }
             n--;
         }
-        throw runtime_error("arrayOf<Float> no encontrado: " + var);
+        throw runtime_error("Array<Float> no encontrado: " + var);
     }
     vector<bool>& lookup_array_bool(string var) {
         int n = array_bool_levels.size() - 1;
@@ -223,7 +223,7 @@ public:
             }
             n--;
         }
-        throw runtime_error("arrayOf<Boolean> no encontrado: " + var);
+        throw runtime_error("Array<Boolean> no encontrado: " + var);
     }
     bool update_array(string var, int idx, int val) {
         int n = array_int_levels.size() - 1;

@@ -19,6 +19,7 @@ public:
         NOT,
         FUN, RETURN, // Funciones y retorno
         ARRAY_OF, // arrayOf
+        ARRAY, // Array
         CI, CD, // Corchetes izquierdo y derecho [ ]
         INDICES, // Para .indices
         SIZE,    // Para .size

@@ -60,7 +60,7 @@ void GenCodeVisitor::visit(Program* program) {
                     int num_elements = arr->elements.size();
                     allocateArray(vardec->id, num_elements, arr->type); //Reservamos el espacio 
                     
-                    varTypes[vardec->id] = "arrayOf<" + arr->type + ">";
+                    varTypes[vardec->id] = "Array<" + arr->type + ">";
                     
                     // Creamos espacio para cada elemento del array
                     out << vardec->id << "_data:" << endl;
@@ -805,7 +805,7 @@ void GenCodeVisitor::visit(VarDec* stm) {
             }
         }
         
-        if (stm->type.find("Array<") == 0 || stm->type.find("arrayOf<") == 0) {
+        if (stm->type.find("Array<") == 0) {
             size_t start = stm->type.find('<') + 1;
             size_t end = stm->type.find('>');
             if (start != string::npos && end != string::npos && end > start) {

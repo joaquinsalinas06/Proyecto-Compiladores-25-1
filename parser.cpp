@@ -95,14 +95,14 @@ VarDec* Parser::parseVarDec() {
                     cout << "Error: se esperaba '>' después del tipo en tipo de variable." << endl;
                     exit(1);
                 }
-            } else if (check(Token::ID) && current->text == "Array") {
+            } else if (check(Token::ARRAY)) {
                 advance();
                 if (!match(Token::LT)) {
                     cout << "Error: se esperaba '<' después de 'Array' en tipo de variable." << endl;
                     exit(1);
                 }
                 if (match(Token::TYPE)) {
-                    type = "arrayOf<" + previous->text + ">";
+                    type = "Array<" + previous->text + ">";
                 } else {
                     cout << "Error: se esperaba un tipo después de '<' en tipo de variable." << endl;
                     exit(1);
@@ -125,9 +125,9 @@ VarDec* Parser::parseVarDec() {
         if (type.empty() && val != nullptr) {
             ArrayExp* arr = dynamic_cast<ArrayExp*>(val);
             if (arr) {
-                if (arr->type == "Int") type = "arrayOf<Int>";
-                else if (arr->type == "Float") type = "arrayOf<Float>";
-                else if (arr->type == "Boolean") type = "arrayOf<Boolean>";
+                if (arr->type == "Int") type = "Array<Int>";
+                else if (arr->type == "Float") type = "Array<Float>";
+                else if (arr->type == "Boolean") type = "Array<Boolean>";
             }
         }
 

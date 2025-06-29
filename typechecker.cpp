@@ -168,9 +168,9 @@ int TypeChecker::visit(IdentifierExp* exp) {
     if (var_type == "Int") return INT_TYPE;
     else if (var_type == "Float") return FLOAT_TYPE;
     else if (var_type == "Boolean") return BOOLEAN_TYPE;
-    else if (var_type == "arrayOf<Int>") return 5;
-    else if (var_type == "arrayOf<Float>") return 6;
-    else if (var_type == "arrayOf<Boolean>") return 7;
+    else if (var_type == "Array<Int>") return 5;
+    else if (var_type == "Array<Float>") return 6;
+    else if (var_type == "Array<Boolean>") return 7;
     else {
         cout << "Error: Tipo de variable desconocido: " << var_type << endl;
         exit(1);
@@ -292,7 +292,7 @@ void TypeChecker::visit(ArrayAssignStatement* stm) {
     int valorTipo = stm->rhs->accept(this);
     
     // Verificar compatibilidad de tipos
-    if (tipoArray == 5) { // arrayOf<Int>
+    if (tipoArray == 5) { // Array<Int>
         if (valorTipo != INT_TYPE) {
             cout << "Error de tipos: No se puede asignar tipo ";
             switch(valorTipo) {
@@ -301,10 +301,10 @@ void TypeChecker::visit(ArrayAssignStatement* stm) {
                 case BOOLEAN_TYPE: cout << "Boolean"; break;
                 default: cout << "desconocido"; break;
             }
-            cout << " a elemento de arrayOf<Int>" << endl;
+            cout << " a elemento de Array<Int>" << endl;
             exit(1);
         }
-    } else if (tipoArray == 6) { // arrayOf<Float>
+    } else if (tipoArray == 6) { // Array<Float>
         if (valorTipo != INT_TYPE && valorTipo != FLOAT_TYPE) {
             cout << "Error de tipos: No se puede asignar tipo ";
             switch(valorTipo) {
@@ -313,7 +313,7 @@ void TypeChecker::visit(ArrayAssignStatement* stm) {
                 case BOOLEAN_TYPE: cout << "Boolean"; break;
                 default: cout << "desconocido"; break;
             }
-            cout << " a elemento de arrayOf<Float>" << endl;
+            cout << " a elemento de Array<Float>" << endl;
             exit(1);
         }
     } else {
@@ -380,9 +380,9 @@ void TypeChecker::visit(ForStatement* stm) {
 
 void TypeChecker::visit(VarDec* stm) {
     if (stm->type != "Int" && stm->type != "Float" && stm->type != "Boolean" && 
-        stm->type != "arrayOf<Int>" && stm->type != "arrayOf<Float>" && stm->type != "arrayOf<Boolean>" && 
+        stm->type != "Array<Int>" && stm->type != "Array<Float>" && stm->type != "Array<Boolean>" && 
         stm->type != "Unit" && !stm->type.empty()) {
-        cout << "Error: Tipo de variable desconocido o no válido: '" << stm->type << "'\nTipos válidos: Int, Float, Boolean, arrayOf<Int>, arrayOf<Float>, arrayOf<Boolean>, Unit" << endl;
+        cout << "Error: Tipo de variable desconocido o no válido: '" << stm->type << "'\nTipos válidos: Int, Float, Boolean, Array<Int>, Array<Float>, Array<Boolean>, Unit" << endl;
         exit(1);
     }
 
@@ -401,9 +401,9 @@ void TypeChecker::visit(VarDec* stm) {
         if (stm->type == "Int" && init_type == INT_TYPE) { 
         } else if (stm->type == "Float" && (init_type == INT_TYPE || init_type == FLOAT_TYPE)) {
         } else if (stm->type == "Boolean" && init_type == BOOLEAN_TYPE) {
-        } else if (stm->type == "arrayOf<Int>" && init_type == 5) {
-        } else if (stm->type == "arrayOf<Float>" && init_type == 6) {
-        } else if (stm->type == "arrayOf<Boolean>" && init_type == 7) {
+        } else if (stm->type == "Array<Int>" && init_type == 5) {
+        } else if (stm->type == "Array<Float>" && init_type == 6) {
+        } else if (stm->type == "Array<Boolean>" && init_type == 7) {
         } else {
             cout << "Error de tipos: No se puede inicializar variable " << stm->id 
                  << " de tipo " << stm->type << " con valor de tipo ";
@@ -411,9 +411,9 @@ void TypeChecker::visit(VarDec* stm) {
                 case INT_TYPE: cout << "Int"; break;
                 case FLOAT_TYPE: cout << "Float"; break;
                 case BOOLEAN_TYPE: cout << "Boolean"; break;
-                case 5: cout << "arrayOf<Int>"; break;
-                case 6: cout << "arrayOf<Float>"; break;
-                case 7: cout << "arrayOf<Boolean>"; break;
+                case 5: cout << "Array<Int>"; break;
+                case 6: cout << "Array<Float>"; break;
+                case 7: cout << "Array<Boolean>"; break;
                 default: cout << "desconocido"; break;
             }
             cout << endl;
@@ -422,12 +422,12 @@ void TypeChecker::visit(VarDec* stm) {
     }
     
     // Añadir la variable al entorno
-    if (stm->type == "arrayOf<Int>") {
-        env.add_array(stm->id, "arrayOf<Int>");
-    } else if (stm->type == "arrayOf<Float>") {
-        env.add_array(stm->id, "arrayOf<Float>");
-    } else if (stm->type == "arrayOf<Boolean>") {
-        env.add_array(stm->id, "arrayOf<Boolean>");
+    if (stm->type == "Array<Int>") {
+        env.add_array(stm->id, "Array<Int>");
+    } else if (stm->type == "Array<Float>") {
+        env.add_array(stm->id, "Array<Float>");
+    } else if (stm->type == "Array<Boolean>") {
+        env.add_array(stm->id, "Array<Boolean>");
     } else {
         env.add_var(stm->id, stm->type);
     }
@@ -648,9 +648,9 @@ int TypeChecker::visit(ArrayExp* exp) {
         if (t != 2) allFloat = false;
         if (t != 3) allBool = false;
     }
-    if (allInt) return 5; // arrayOf<Int>
-    if (allFloat) return 6; // arrayOf<Float>
-    if (allBool) return 7; // arrayOf<Boolean>
+    if (allInt) return 5; // Array<Int>
+    if (allFloat) return 6; // Array<Float>
+    if (allBool) return 7; // Array<Boolean>
     // Si hay mezcla, lo marco como error
     std::cout << "Error: Los arrays deben ser homogéneos (todo Int, todo Float o todo Boolean)" << std::endl;
     exit(1);
@@ -664,9 +664,9 @@ int TypeChecker::visit(ArrayAccessExp* exp) {
         std::cout << "Error: El índice de un array debe ser Int" << std::endl;
         exit(1);
     }
-    if (arrType == 5) return 1; // arrayOf<Int> -> Int
-    if (arrType == 6) return 2; // arrayOf<Float> -> Float
-    if (arrType == 7) return 3; // arrayOf<Boolean> -> Boolean
+    if (arrType == 5) return 1; // Array<Int> -> Int
+    if (arrType == 6) return 2; // Array<Float> -> Float
+    if (arrType == 7) return 3; // Array<Boolean> -> Boolean
     std::cout << "Error: Solo puedo indexar arrays de Int, Float o Boolean" << std::endl;
     exit(1);
 }
@@ -679,7 +679,7 @@ int TypeChecker::visit(ArrayMethodExp* exp) {
         exit(1);
     }
     if (exp->method == ArrayMethodType::SIZE) return 1; // .size -> Int
-    if (exp->method == ArrayMethodType::INDICES) return 5; // .indices -> arrayOf<Int>
+    if (exp->method == ArrayMethodType::INDICES) return 5; // .indices -> Array<Int>
     std::cout << "Error: Método de array no soportado" << std::endl;
     exit(1);
 }

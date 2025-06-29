@@ -29,6 +29,7 @@ std::ostream& operator << ( std::ostream& outs, const Token & tok )
         case Token::CD: outs << "TOKEN(CD)"; break;
 
         case Token::ARRAY_OF: outs << "TOKEN(ARRAY_OF)"; break;
+        case Token::ARRAY: outs << "TOKEN(ARRAY)"; break;
         case Token::GENERIC_START: outs << "TOKEN(GENERIC_START)"; break;
         case Token::GENERIC_END: outs << "TOKEN(GENERIC_END)"; break;
         case Token::INDICES: outs << "TOKEN(INDICES)"; break;

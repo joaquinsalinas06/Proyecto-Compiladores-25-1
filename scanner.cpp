@@ -108,6 +108,8 @@ Token* Scanner::nextToken() {
             token = new Token(Token::RETURN, lex, 0, lex.length());
         } else if (lex == "arrayOf") {
             token = new Token(Token::ARRAY_OF, lex, 0, lex.length());
+        } else if (lex == "Array") {
+            token = new Token(Token::ARRAY, lex, 0, lex.length());
         } else if (lex == "indices") {
             token = new Token(Token::INDICES, lex, 0, lex.length());
         } else if (lex == "size") {
