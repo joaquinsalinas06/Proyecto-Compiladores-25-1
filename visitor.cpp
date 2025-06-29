@@ -139,10 +139,27 @@ int ArrayMethodExp::accept(Visitor* visitor) {
 /////////////////////////////////////////////////////////////////////////////////////
 ///// PrintVisitor
 /////////////////////////////////////////////////////////////////////////////////////
-int PrintVisitor::visit(BinaryExp* exp) {
-    exp->left->accept(this);
+int PrintVisitor::visit(BinaryExp* exp) { //Si la expresion binaria es una expesion binaria, que ademas tiene 2 operandos que tienen un orden de ejecucion, se le coloca parentesis a las operaciones
+    BinaryExp* leftBin = dynamic_cast<BinaryExp*>(exp->left);
+    if (leftBin && parentesis(exp, leftBin, false)) {
+        cout << "(";
+        exp->left->accept(this);
+        cout << ")";
+    } else {
+        exp->left->accept(this);
+    }
+    
     cout << ' ' << Exp::binopToChar(exp->op) << ' ';
-    exp->right->accept(this);
+    
+    BinaryExp* rightBin = dynamic_cast<BinaryExp*>(exp->right);
+    if (rightBin && parentesis(exp, rightBin, true)) {
+        cout << "(";
+        exp->right->accept(this);
+        cout << ")";
+    } else {
+        exp->right->accept(this);
+    }
+    
     return 0;
 }
 
@@ -218,6 +235,14 @@ void PrintVisitor::visit(MinusAssignStatement* stm) {
     imprimirIndentacion();
     cout << stm->id << " -= ";
     stm->rhs->accept(this); 
+}
+
+// Para la asignación de arrays
+void PrintVisitor::visit(ArrayAssignStatement* stm) {
+    imprimirIndentacion();
+    stm->lhs->accept(this);
+    cout << " = ";
+    stm->rhs->accept(this);
 }
 
 void PrintVisitor::visit(PrintStatement* stm) {
@@ -455,6 +480,44 @@ int PrintVisitor::visit(ArrayMethodExp* exp) {
     return 0;
 }
 
+int PrintVisitor::ordenOp(BinaryOp op) {
+    switch (op) {
+        case OR_OP:          return 1;
+        case AND_OP:         return 2;
+        case EQ_OP:
+        case NOT_EQ_OP:      return 3;
+        case LT_OP:
+        case LE_OP:
+        case GT_OP:
+        case GE_OP:          return 4;
+        case PLUS_OP:
+        case MINUS_OP:       return 5;
+        case MUL_OP:
+        case DIV_OP:         return 6;
+        default:             return 0;
+    }
+}
+
+bool PrintVisitor::parentesis(BinaryExp* left, BinaryExp* right, bool isRightChild) {
+    BinaryOp lop = left->op;
+    BinaryOp rop = right->op;
+
+    int ordenl = ordenOp(lop);      
+    int ordenr = ordenOp(rop);
+    
+    if (ordenl < ordenr) {
+        return true;
+    }
+    
+    if (ordenl == ordenr && isRightChild) {
+        if (left->op == MINUS_OP || right->op == DIV_OP) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 ///// EVALVisitor
 /////////////////////////////////////////////////////////////////////////////////////
@@ -621,6 +684,53 @@ void EVALVisitor::visit(MinusAssignStatement* stm) {
     }
 }
 
+void EVALVisitor::visit(ArrayAssignStatement* stm) {
+    int valueType = stm->rhs->accept(this);
+    
+    // Guardar el último valor evaluado
+    int savedInt = lastInt;
+    float savedFloat = lastFloat;
+    
+    ArrayAccessExp* arrayAccess = dynamic_cast<ArrayAccessExp*>(stm->lhs);
+    if (!arrayAccess) {
+        cout << "Error: La parte izquierda debe ser un acceso a array" << endl;
+        return;
+    }
+    
+    // El indice solo puede ser entero, si es float lo cambiamos a int
+    int indexType = arrayAccess->index->accept(this);
+    int idx = (indexType == 2) ? (int)lastFloat : lastInt;
+    
+    // Obtener el nombre del array
+    IdentifierExp* arrayId = dynamic_cast<IdentifierExp*>(arrayAccess->array);
+    if (!arrayId) {
+        cout << "Error: El array debe ser un identificador" << endl;
+        return;
+    }
+    
+    //Buscamos el tipo del array en el entorno
+    string arrayType = env.lookup_type(arrayId->name);
+    
+    bool success = false;
+    if (arrayType == "arrayOf<Int>") { //Segun el tipo del arreglo, hacemos la conversion o no y actualizamos el array
+        int value = (valueType == 2) ? (int)savedFloat : savedInt;
+        success = env.update_array(arrayId->name, idx, value);
+    } else if (arrayType == "arrayOf<Float>") {
+        float value = (valueType == 1) ? (float)savedInt : savedFloat;
+        success = env.update_array(arrayId->name, idx, value);
+    } else if (arrayType == "arrayOf<Boolean>") {
+        bool value = (savedInt != 0);
+        success = env.update_array(arrayId->name, idx, value);
+    } else {
+        cout << "Error: Tipo de array no soportado: " << arrayType << endl;
+        return;
+    }
+    
+    if (!success) {
+        cout << "ERROR: Failed to update array " << arrayId->name << " at index " << idx << endl;
+    }
+}
+
 void EVALVisitor::visit(PrintStatement* stm) {
     int t = stm->e->accept(this); // Evalúa la expresión
     if (t == 2) { 
@@ -741,7 +851,6 @@ int EVALVisitor::visit(ArrayExp* exp) {
             e->accept(this);
             vals.push_back(lastInt);
         }
-        // El almacenamiento real se hace en la declaración de variable (VarDec)
         lastType = 5; // 5 = arrayOf<Int>
         lastArrayInt = vals;
         return lastType;
@@ -753,6 +862,15 @@ int EVALVisitor::visit(ArrayExp* exp) {
         }
         lastType = 6; // 6 = arrayOf<Float>
         lastArrayFloat = vals;
+        return lastType;
+    } else if (exp->type == "Boolean") {
+        std::vector<bool> vals;
+        for (auto e : exp->elements) {
+            e->accept(this);
+            vals.push_back(lastInt != 0);
+        }
+        lastType = 7; // 7 = arrayOf<Boolean>
+        lastArrayBool = vals;
         return lastType;
     }
     return 0;
@@ -772,7 +890,7 @@ int EVALVisitor::visit(ArrayAccessExp* exp) {
                 lastInt = arr[idx];
                 return lastType;
             } else {
-                std::cerr << "Error: Índice fuera de rango en arrayOf<Int> '" << idExp->name << "' (idx=" << idx << ")\n";
+                std::cerr << "Error: Índice fuera de rango en arrayOf<Int> '" << idExp->name << "' (idx=" << idx << ", size=" << arr.size() << ")\n";
             }
         } else if (arrType == "arrayOf<Float>") {
             auto& arr = env.lookup_array_float(idExp->name);
@@ -782,6 +900,15 @@ int EVALVisitor::visit(ArrayAccessExp* exp) {
                 return lastType;
             } else {
                 std::cerr << "Error: Índice fuera de rango en arrayOf<Float> '" << idExp->name << "' (idx=" << idx << ")\n";
+            }
+        } else if (arrType == "arrayOf<Boolean>") { //Agregamos en caso tengamos un array de boolean
+            auto& arr = env.lookup_array_bool(idExp->name);
+            if (idx >= 0 && idx < (int)arr.size()) {
+                lastType = 3;
+                lastInt = arr[idx] ? 1 : 0;
+                return lastType;
+            } else {
+                std::cerr << "Error: Índice fuera de rango en arrayOf<Boolean> '" << idExp->name << "' (idx=" << idx << ")\n";
             }
         } else {
             std::cerr << "Error: Tipo de array no soportado para acceso: '" << arrType << "'\n";
@@ -822,6 +949,19 @@ int EVALVisitor::visit(ArrayMethodExp* exp) {
                 for (int i = 0; i < arr.size(); ++i) lastArrayInt.push_back(i);
                 return lastType;
         }
+    } else if (arrType == "arrayOf<Boolean>") {
+        auto& arr = env.lookup_array_bool(idExp->name);
+        switch (exp->method) {
+            case ArrayMethodType::SIZE:
+                lastType = 1;
+                lastInt = arr.size();
+                return lastType;
+            case ArrayMethodType::INDICES:
+                lastType = 5;
+                lastArrayInt.clear();
+                for (int i = 0; i < arr.size(); ++i) lastArrayInt.push_back(i);
+                return lastType;
+        }
     }
     return 0;
 }
@@ -840,6 +980,8 @@ void EVALVisitor::visit(VarDec* stm) {
             env.add_array(stm->id, lastArrayInt);
         } else if (declared_type == "arrayOf<Float>") {
             env.add_array(stm->id, lastArrayFloat);
+        } else if (declared_type == "arrayOf<Boolean>") {
+            env.add_array(stm->id, lastArrayBool);
         }
     } else {
         env.add_var(stm->id, stm->type);
@@ -940,8 +1082,23 @@ void EVALVisitor::visit(ForStatement* stm) {
             range->step->accept(this);
             step_val = (lastType == 2) ? (int)lastFloat : lastInt;
         }
-        for (int i = start_val; i < end_val; i += step_val) {
-            indices.push_back(i);
+        
+        switch (range->type) { //Segun el tipo de rango hay que detenernos en algun punto o ir hacia abajo
+            case RANGE_DOTDOT:
+                for (int i = start_val; i <= end_val; i += step_val) {
+                    indices.push_back(i);
+                }
+                break;
+            case RANGE_UNTIL:
+                for (int i = start_val; i < end_val; i += step_val) {
+                    indices.push_back(i);
+                }
+                break;
+            case RANGE_DOWNTO:
+                for (int i = start_val; i >= end_val; i -= abs(step_val)) {
+                    indices.push_back(i);
+                }
+                break;
         }
     } else {
         stm->range->accept(this);

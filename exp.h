@@ -139,6 +139,17 @@ public:
 };
 
 
+class ArrayAssignStatement : public Stm {
+public:
+    Exp* lhs;
+    Exp* rhs;
+    ArrayAssignStatement(Exp* lhs, Exp* rhs) : lhs(lhs), rhs(rhs) {}
+    int accept(Visitor* visitor) override;
+    ~ArrayAssignStatement();
+};
+
+
+
 class PrintStatement : public Stm {
 public:
     Exp* e;

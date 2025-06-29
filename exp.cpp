@@ -80,6 +80,16 @@ MinusAssignStatement::~MinusAssignStatement() {
     delete rhs;
 }
 
+int ArrayAssignStatement::accept(Visitor* visitor) {
+    visitor->visit(this);
+    return 0;
+}
+
+ArrayAssignStatement::~ArrayAssignStatement() {
+    delete lhs;
+    delete rhs;
+}
+
 PrintStatement::PrintStatement(Exp* e, bool newline) : e(e), newline(newline) {}
 PrintStatement::~PrintStatement() {
     delete e;

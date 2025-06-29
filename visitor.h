@@ -5,6 +5,9 @@
 #include <unordered_map>
 #include <sstream>
 
+// Forward declaration
+enum BinaryOp;
+
 class BinaryExp;
 class UnaryExp;
 class NumberExp;
@@ -16,6 +19,7 @@ class AssignStatement;
 
 class PlusAssignStatement;
 class MinusAssignStatement;
+class ArrayAssignStatement;
 
 class PrintStatement;
 
@@ -52,6 +56,7 @@ public:
 
     virtual void visit(PlusAssignStatement* stm) = 0; // PlusAssignStatement
     virtual void visit(MinusAssignStatement* stm) = 0; // MinusAssignStatement
+    virtual void visit(ArrayAssignStatement* stm) = 0; // ArrayAssignStatement
 
     virtual void visit(PrintStatement* stm) = 0;
 
@@ -77,6 +82,8 @@ class PrintVisitor : public Visitor {
 private:
     int indent = 0;  // Nivel actual de indentación
     void imprimirIndentacion();  // Método auxiliar para imprimir la indentación
+    int ordenOp(BinaryOp op);  // Obtener precedencia de operador
+    bool parentesis(BinaryExp* base, BinaryExp* child, bool isRightChild);  // Verificar si necesita paréntesis
 public:
     void imprimir(Program* program);
     int visit(BinaryExp* exp) override;
@@ -91,6 +98,7 @@ public:
 
     void visit(PlusAssignStatement* stm) override; // PlusAssignStatement
     void visit(MinusAssignStatement* stm) override; // MinusAssignStatement
+    void visit(ArrayAssignStatement* stm) override; // ArrayAssignStatement
 
     void visit(PrintStatement* stm) override;
     void visit(IfStatement* stm) override; // IfStatement
@@ -120,6 +128,7 @@ class EVALVisitor : public Visitor {
     bool returnExecuted; // Flag para controlar la ejecución de return
     std::vector<int> lastArrayInt;
     std::vector<float> lastArrayFloat;
+    std::vector<bool> lastArrayBool;
 
 public:
     void ejecutar(Program* program);
@@ -132,8 +141,9 @@ public:
     int visit(RangeExp* exp) override;
     void visit(AssignStatement* stm) override;
 
-    void visit(PlusAssignStatement* stm) override; // PlusAssignStatement}
+    void visit(PlusAssignStatement* stm) override; // PlusAssignStatement
     void visit(MinusAssignStatement* stm) override; // MinusAssignStatement
+    void visit(ArrayAssignStatement* stm) override; // ArrayAssignStatement
 
     void visit(PrintStatement* stm) override;
     void visit(IfStatement* stm) override; // IfStatement
@@ -167,6 +177,7 @@ public:
 
     void visit(PlusAssignStatement* stm) override; // PlusAssignStatement
     void visit(MinusAssignStatement* stm) override; // MinusAssignStatement
+    void visit(ArrayAssignStatement* stm) override; // ArrayAssignStatement
 
     void visit(PrintStatement* stm) override;
     void visit(IfStatement* stm) override; // IfStatement

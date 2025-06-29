@@ -1,1 +1,12 @@
+fun main() {
+    var numeros = arrayOf<Int>(1, 2, 3, 4, 5)
+    println(numeros[0])
 
+    numeros[0] = 10
+    println(numeros[0])
+
+    var arr = arrayOf<Int>(10, 20, 30)
+    for (i in arr.indices) {
+        println(arr[i])
+    }
+}

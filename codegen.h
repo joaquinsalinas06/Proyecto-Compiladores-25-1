@@ -1,6 +1,7 @@
 #ifndef CODEGEN_H
 #define CODEGEN_H
 
+#include "exp.h"
 #include "visitor.h"
 #include <fstream>
 #include <unordered_map>
@@ -50,6 +51,7 @@ public:
     void visit(AssignStatement* stm) override;
     void visit(PlusAssignStatement* stm) override;
     void visit(MinusAssignStatement* stm) override;
+    void visit(ArrayAssignStatement* stm) override;
     void visit(PrintStatement* stm) override;
     void visit(IfStatement* stm) override;
     void visit(WhileStatement* stm) override;

@@ -1,1 +1,9 @@
+fun main() {
+    var x: Int = 5
+    println(x)
 
+    var arr = arrayOf<Int>(1, 2, 3, 4, 5) 
+    println(arr[0])
+    println(arr[4])
+    println(arr.size)
+}

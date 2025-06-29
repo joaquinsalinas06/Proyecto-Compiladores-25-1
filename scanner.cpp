@@ -167,14 +167,14 @@ Token* Scanner::nextToken() {
                     current++;
                     return new Token(Token::LE);
                 }
-                return new Token(Token::GENERIC_START);
+                return new Token(Token::LT);
             case '>':
                 current++;
                 if (current < input.length() && input[current] == '=') {
                     current++;
                     return new Token(Token::GE);
                 }
-                return new Token(Token::GENERIC_END);
+                return new Token(Token::GT);
             case '[':
                 current++;
                 return new Token(Token::CI);

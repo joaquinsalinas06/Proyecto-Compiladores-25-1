@@ -19,6 +19,7 @@ private:
 
     vector<unordered_map<string, vector<int>>> array_int_levels;
     vector<unordered_map<string, vector<float>>> array_float_levels;
+    vector<unordered_map<string, vector<bool>>> array_bool_levels;
 
     int search_rib(string var, string type) {
         if (type == "Int") {
@@ -180,11 +181,17 @@ public:
         array_float_levels.back()[var] = val;
         type_levels.back()[var] = "arrayOf<Float>";
     }
+    void add_array(string var, const vector<bool>& val) {
+        array_bool_levels.back()[var] = val;
+        type_levels.back()[var] = "arrayOf<Boolean>";
+    }
     void add_array(string var, string type) {
         if (type == "arrayOf<Int>") {
             array_int_levels.back()[var] = vector<int>();
         } else if (type == "arrayOf<Float>") {
             array_float_levels.back()[var] = vector<float>();
+        } else if (type == "arrayOf<Boolean>") {
+            array_bool_levels.back()[var] = vector<bool>();
         }
         type_levels.back()[var] = type;
     }
@@ -208,6 +215,16 @@ public:
         }
         throw runtime_error("arrayOf<Float> no encontrado: " + var);
     }
+    vector<bool>& lookup_array_bool(string var) {
+        int n = array_bool_levels.size() - 1;
+        while (n >= 0) {
+            if (array_bool_levels[n].find(var) != array_bool_levels[n].end()) {
+                return array_bool_levels[n][var];
+            }
+            n--;
+        }
+        throw runtime_error("arrayOf<Boolean> no encontrado: " + var);
+    }
     bool update_array(string var, int idx, int val) {
         int n = array_int_levels.size() - 1;
         while (n >= 0) {
@@ -215,6 +232,8 @@ public:
                 if (idx >= 0 && idx < array_int_levels[n][var].size()) {
                     array_int_levels[n][var][idx] = val;
                     return true;
+                } else {
+                    return false; 
                 }
             }
             n--;
@@ -228,6 +247,23 @@ public:
                 if (idx >= 0 && idx < array_float_levels[n][var].size()) {
                     array_float_levels[n][var][idx] = val;
                     return true;
+                } else {
+                    return false;
+                }
+            }
+            n--;
+        }
+        return false;
+    }
+    bool update_array(string var, int idx, bool val) {
+        int n = array_bool_levels.size() - 1;
+        while (n >= 0) {
+            if (array_bool_levels[n].find(var) != array_bool_levels[n].end()) {
+                if (idx >= 0 && idx < array_bool_levels[n][var].size()) {
+                    array_bool_levels[n][var][idx] = val;
+                    return true;
+                } else {
+                    return false; // Found variable but index out of bounds
                 }
             }
             n--;
@@ -262,6 +298,7 @@ public:
         bool_levels.push_back(unordered_map<string, bool>());
         array_int_levels.push_back(unordered_map<string, vector<int>>());
         array_float_levels.push_back(unordered_map<string, vector<float>>());
+        array_bool_levels.push_back(unordered_map<string, vector<bool>>());
         type_levels.push_back(unordered_map<string, string>());
     }
     void remove_level() {
@@ -270,6 +307,7 @@ public:
         bool_levels.pop_back();
         array_int_levels.pop_back();
         array_float_levels.pop_back();
+        array_bool_levels.pop_back();
         type_levels.pop_back();
     }
 

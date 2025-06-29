@@ -4,6 +4,7 @@
 #include "scanner.h"
 #include "exp.h" // Asegúrate de que UnaryExp y NOT_OP estén definidos aquí
 #include "parser.h"
+    
 
 using namespace std;
 
@@ -63,6 +64,53 @@ VarDec* Parser::parseVarDec() {
         if (match(Token::TWO_POINTS)) {
             if (match(Token::TYPE)) {
                 type = previous->text;
+            } else if (match(Token::ARRAY_OF)) {
+                if (!match(Token::LT)) {
+                    cout << "Error: se esperaba '<' después de 'arrayOf' en tipo de variable." << endl;
+                    exit(1);
+                }
+                if (match(Token::TYPE)) {
+                    type = "arrayOf<" + previous->text + ">";
+                } else {
+                    cout << "Error: se esperaba un tipo después de '<' en tipo de variable." << endl;
+                    exit(1);
+                }
+                if (!match(Token::GT)) {
+                    cout << "Error: se esperaba '>' después del tipo en tipo de variable." << endl;
+                    exit(1);
+                }
+            } else if (check(Token::ID) && current->text == "arrayOf") {
+                advance();
+                if (!match(Token::LT)) {
+                    cout << "Error: se esperaba '<' después de 'arrayOf' en tipo de variable." << endl;
+                    exit(1);
+                }
+                if (match(Token::TYPE)) {
+                    type = "arrayOf<" + previous->text + ">";
+                } else {
+                    cout << "Error: se esperaba un tipo después de '<' en tipo de variable." << endl;
+                    exit(1);
+                }
+                if (!match(Token::GT)) {
+                    cout << "Error: se esperaba '>' después del tipo en tipo de variable." << endl;
+                    exit(1);
+                }
+            } else if (check(Token::ID) && current->text == "Array") {
+                advance();
+                if (!match(Token::LT)) {
+                    cout << "Error: se esperaba '<' después de 'Array' en tipo de variable." << endl;
+                    exit(1);
+                }
+                if (match(Token::TYPE)) {
+                    type = "arrayOf<" + previous->text + ">";
+                } else {
+                    cout << "Error: se esperaba un tipo después de '<' en tipo de variable." << endl;
+                    exit(1);
+                }
+                if (!match(Token::GT)) {
+                    cout << "Error: se esperaba '>' después del tipo en tipo de variable." << endl;
+                    exit(1);
+                }
             } else {
                 cout << "Error: tipo de variable desconocido." << endl;
                 exit(1);
@@ -79,7 +127,13 @@ VarDec* Parser::parseVarDec() {
             if (arr) {
                 if (arr->type == "Int") type = "arrayOf<Int>";
                 else if (arr->type == "Float") type = "arrayOf<Float>";
+                else if (arr->type == "Boolean") type = "arrayOf<Boolean>";
             }
+        }
+
+        if (type.empty() && val == nullptr) {
+            cout << "Error: se debe especificar el tipo de la variable o inicializarla." << endl;
+            exit(1);
         }
         vd = new VarDec(id, type, val);
     }
@@ -179,35 +233,43 @@ Stm* Parser::parseStatement() {
         ReturnStatement* returnStmt = parseReturnStatement();
         return returnStmt;
     }
-    else if (match(Token::ID)) {
-        string lex = previous->text;
+
+    else if (check(Token::ID)) {
+        string lex = current->text;
+        advance();
+        Exp* lhs = new IdentifierExp(lex);
+        while (check(Token::CI)) {
+            lhs = parseArrayAccess(lhs);
+        }
         if (match(Token::ASSIGN)) {
             e = parseAExp();
-            s = new AssignStatement(lex, e);
+            IdentifierExp* idLhs = dynamic_cast<IdentifierExp*>(lhs);
+            if (idLhs) {
+                s = new AssignStatement(lex, e);
+            } else {
+                s = new ArrayAssignStatement(lhs, e);
+            }
         } else if (match(Token::PLUS_ASSIGN)) {
-            e = parseAExp(); // Asignación con suma también puede ser cualquier expresión
+            e = parseAExp();
             s = new PlusAssignStatement(lex, e);
         } else if (match(Token::MINUS_ASSIGN)) {
-            e = parseAExp(); // Asignación con resta también puede ser cualquier expresión
+            e = parseAExp();
             s = new MinusAssignStatement(lex, e);
-        } else if (match(Token::PI)) { // Llamada a una funcion
+        } else if (match(Token::PI)) {
             list<Exp*>* args = new list<Exp*>();
-            
-            if (!check(Token::PD)) { //Si o si se parsea un argumento, luego si existen más separados por coma se parsean igual
+            if (!check(Token::PD)) {
                 args->push_back(parseAExp());
                 while (match(Token::COMA)) {
                     args->push_back(parseAExp());
                 }
             }
-
             if (!match(Token::PD)) {
                 cout << "Error: se esperaba ')' después de los argumentos de la función." << endl;
                 exit(1);
             }
-
             s = new FCallStm(lex, *args);
         } else {
-            cout << "Error: se esperaba '=', '+=', '-=', o '(' después del identificador." << endl;
+            cout << "Error: se esperaba '=', '+=', '-=', o '(' después del identificador o acceso a array." << endl;
             exit(1);
         }
     } else if (check(Token::PRINT) || check(Token::PRINTLN)) {
@@ -435,14 +497,14 @@ Exp* Parser::parseArrayExpression() {
     
     // Parsear el tipo genérico
     string type;
-    if (!match(Token::GENERIC_START)) exit(1);
+    if (!match(Token::LT)) exit(1);
     if (match(Token::TYPE)) {
         type = previous->text;
     } else {
         cout << "Error: se esperaba un tipo después de '<'" << endl;
         exit(1);
     }
-    if (!match(Token::GENERIC_END)) exit(1);
+    if (!match(Token::GT)) exit(1);
 
     // Parsear los elementos
     if (!match(Token::PI)) exit(1);
@@ -478,38 +540,45 @@ Exp* Parser::parseArrayAccess(Exp* array) {
 Exp* Parser::parseFactor() {
     // Array literal
     if (match(Token::ARRAY_OF)) {
-        if (!match(Token::GENERIC_START)) { 
-            cout << "Error: Se esperaba '<' después de 'arrayOf'." << endl;
-            exit(1);
-        }
-        if (!match(Token::TYPE)) {
-            cout << "Error: Se esperaba un tipo (Int, Float, Boolean) dentro de '<>'." << endl;
-            exit(1);
-        }
-        string array_type = previous->text;
+        // Verificar si tiene tipos genéricos
+        if (check(Token::LT)) {
+            if (!match(Token::LT)) { 
+                cout << "Error: Se esperaba '<' después de 'arrayOf'." << endl;
+                exit(1);
+            }
+            if (!match(Token::TYPE)) {
+                cout << "Error: Se esperaba un tipo (Int, Float, Boolean) dentro de '<>'." << endl;
+                exit(1);
+            }
+            string array_type = previous->text;
 
-        if (!match(Token::GENERIC_END)) { 
-            cout << "Error: Se esperaba '>' después del tipo." << endl;
-            exit(1);
-        }
-        if (!match(Token::PI)) {
-            cout << "Error: Se esperaba '(' después de 'arrayOf<Type>'." << endl;
-            exit(1);
-        }
+            if (!match(Token::GT)) { 
+                cout << "Error: Se esperaba '>' después del tipo." << endl;
+                exit(1);
+            }
+            if (!match(Token::PI)) {
+                cout << "Error: Se esperaba '(' después de 'arrayOf<Type>'." << endl;
+                exit(1);
+            }
 
-        vector<Exp*> elements; // <--- Usar vector, no list
-        if (!check(Token::PD)) { 
-            do {
-                elements.push_back(parseAExp()); 
-            } while (match(Token::COMA));
-        }
+            vector<Exp*> elements;
+            if (!check(Token::PD)) { 
+                do {
+                    elements.push_back(parseAExp()); 
+                } while (match(Token::COMA));
+            }
 
-        if (!match(Token::PD)) {
-            cout << "Error: Se esperaba ')' para cerrar la lista de elementos del array." << endl;
+            if (!match(Token::PD)) {
+                cout << "Error: Se esperaba ')' para cerrar la lista de elementos del array." << endl;
+                exit(1);
+            }
+            
+            return new ArrayExp(array_type, elements);
+        } else {
+            // Si no hay tipo explícito, NO debe procesarse como arrayOf
+            cout << "Error: Se esperaba '<Tipo>' después de 'arrayOf'." << endl;
             exit(1);
         }
-        
-        return new ArrayExp(array_type, elements);
     }
 
     // Paréntesis
@@ -524,12 +593,24 @@ Exp* Parser::parseFactor() {
 
     // Literales numéricos
     if (match(Token::NUM)) {
-        int value = stoi(previous->text);
-        return new NumberExp(value);
+        string numText = previous->text;
+        int value = stoi(numText);
+        NumberExp* numExp = new NumberExp(value);
+        // Verificar si el token tiene 'f' al final
+        if (previous->has_f || (numText.length() > 0 && numText.back() == 'f')) {
+            numExp->has_f = true;
+        }
+        return numExp;
     }
     if (match(Token::DECIMAL)) {
-        float value = stof(previous->text);
-        return new DecimalExp(value);
+        string decText = previous->text;
+        float value = stof(decText);
+        DecimalExp* decExp = new DecimalExp(value);
+        // Los decimales siempre se consideran float
+        if (previous->has_f || (decText.length() > 0 && decText.back() == 'f')) {
+            decExp->has_f = true;
+        }
+        return decExp;
     }
 
     // Booleanos
@@ -556,6 +637,12 @@ Exp* Parser::parseFactor() {
              return new FCallExp(name, args);
         }
 
+        // Verificar si es arrayOf sin < >
+        if (name == "arrayOf" && check(Token::PI)) {
+            cout << "Error: Se esperaba '<Tipo>' después de 'arrayOf'." << endl;
+            exit(1);
+        }
+        
         // Si no es una llamada a función, es un identificador
         Exp* factor = new IdentifierExp(name);
         

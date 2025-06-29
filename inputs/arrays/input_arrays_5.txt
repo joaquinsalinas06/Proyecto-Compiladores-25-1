@@ -1,1 +1,8 @@
-
+fun main() {
+    var arr = arrayOf<Int>(2, 4, 6, 8, 10)
+    for (i in arr.indices) {
+        if (arr[i] > 5) {
+            println(arr[i])
+        }
+    }
+}

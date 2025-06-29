@@ -56,7 +56,33 @@ void GenCodeVisitor::visit(Program* program) {
             globalVarDecs.push_back(vardec); 
             
             if (vardec->value != nullptr) {
-                if (vardec->type == "Float") {
+                if (ArrayExp* arr = dynamic_cast<ArrayExp*>(vardec->value)) { 
+                    int num_elements = arr->elements.size();
+                    allocateArray(vardec->id, num_elements, arr->type); //Reservamos el espacio 
+                    
+                    varTypes[vardec->id] = "arrayOf<" + arr->type + ">";
+                    
+                    // Creamos espacio para cada elemento del array
+                    out << vardec->id << "_data:" << endl;
+                    for (int i = 0; i < num_elements; i++) {
+                        if (arr->type == "Float") {
+                            if (DecimalExp* decExp = dynamic_cast<DecimalExp*>(arr->elements[i])) {
+                                out << "    .double " << decExp->value << endl;
+                            } else if (NumberExp* numExp = dynamic_cast<NumberExp*>(arr->elements[i])) {
+                                out << "    .double " << (double)numExp->value << endl;
+                            } else {
+                                out << "    .double 0.0" << endl;
+                            }
+                        } else {
+                            if (NumberExp* numExp = dynamic_cast<NumberExp*>(arr->elements[i])) {
+                                out << "    .quad " << numExp->value << endl;
+                            } else {
+                                out << "    .quad 0" << endl;
+                            }
+                        }
+                    }
+                    out << vardec->id << ": .quad " << vardec->id << "_data" << endl;
+                } else if (vardec->type == "Float") {
                     // Si es float, lo guardo como double
                     if (DecimalExp* decExp = dynamic_cast<DecimalExp*>(vardec->value)) {
                         out << vardec->id << ": .double " << decExp->value << endl;
@@ -113,12 +139,15 @@ int GenCodeVisitor::visit(BinaryExp* exp) {
         if (isIntegerResult) { //Pero estamos con una variable etera, transformamos de int a double, con los registros xmm
             out << "    cvtsi2sd %rax, %xmm0" << endl;
         }
-        out << "    movsd %xmm0, %xmm1" << endl;
+        out << "    subq $8, %rsp" << endl;
+        out << "    movsd %xmm0, (%rsp)" << endl;
         
         exp->right->accept(this);
         if (isIntegerResult) { // Si el operando derecho es un entero, lo convertimos a double
             out << "    cvtsi2sd %rax, %xmm0" << endl;
         }
+        out << "    movsd (%rsp), %xmm1" << endl;
+        out << "    addq $8, %rsp" << endl;
 
         
         switch (exp->op) { //Aplicamos la operación correspondiente pero con los registros xmm
@@ -323,7 +352,10 @@ int GenCodeVisitor::visit(IdentifierExp* exp) {
     bool isFloat = (varTypes.count(exp->name) && varTypes[exp->name] == "Float"); // Verificamos si la variable es de tipo float y existe
     
     if (memoriaGlobal.count(exp->name)) { // Si la variable es global
-        if (isFloat) { // Si es float, movemos el valor de la variable global a xmm0
+        if (arrayInfo.count(exp->name)) { //Si tenemos el caso de un array
+            out << "    movq " << exp->name << "(%rip), %rax" << endl;
+            isIntegerResult = true; // Es una dirección (puntero)
+        } else if (isFloat) { // Si es float, movemos el valor de la variable global a xmm0
             out << "    movsd " << exp->name << "(%rip), %xmm0" << endl;
             isIntegerResult = false;
         } else { // Si es entero, movemos el valor de la variable global a rax
@@ -448,6 +480,51 @@ void GenCodeVisitor::visit(MinusAssignStatement* stm) { //Mismmo procedimiento, 
     }
 }
 
+void GenCodeVisitor::visit(ArrayAssignStatement* stm) {
+    // Evaluar el valor a asignar
+    stm->rhs->accept(this);
+    
+    ArrayAccessExp* arrayAccess = dynamic_cast<ArrayAccessExp*>(stm->lhs);
+    
+    bool isFloatArray = false;
+    if (IdentifierExp* arrayId = dynamic_cast<IdentifierExp*>(arrayAccess->array)) { //Buscamos el tipo del array para determinar si es float
+        if (arrayInfo.count(arrayId->name) && arrayInfo[arrayId->name].first == "Float") {
+            isFloatArray = true;
+        }
+    }
+    
+    // Guardar el valor en el stack
+    if (isFloatArray) { //Convertimos los tipos si es que no concuerdan con el del array
+        if (isIntegerResult) {
+            out << "    cvtsi2sd %rax, %xmm0" << endl; 
+        }
+        out << "    subq $8, %rsp" << endl;
+        out << "    movsd %xmm0, (%rsp)" << endl;
+    } else {
+        if (!isIntegerResult) {
+            out << "    cvttsd2si %xmm0, %rax" << endl;
+        }
+        out << "    pushq %rax" << endl;
+    }
+    
+    arrayAccess->array->accept(this);
+    out << "    movq %rax, %rbx" << endl; // Recuperamos la direccion del array
+    
+    arrayAccess->index->accept(this);
+    out << "    movq %rax, %rcx" << endl;
+    out << "    imulq $8, %rcx" << endl;
+    out << "    addq %rcx, %rbx" << endl; //Generamos un nuevo espacio, y a partir de la posicion encontrada nos vamos a esa ubicacion desde la base
+    
+    if (isFloatArray) { //Movemos el elemento a la direccion calculada (Base Address + Offset)
+        out << "    movsd (%rsp), %xmm0" << endl;
+        out << "    addq $8, %rsp" << endl;
+        out << "    movsd %xmm0, (%rbx)" << endl;
+    } else {
+        out << "    popq %rax" << endl;
+        out << "    movq %rax, (%rbx)" << endl;
+    }
+}
+
 void GenCodeVisitor::visit(PrintStatement* stm) {
     stm->e->accept(this);
     
@@ -457,7 +534,6 @@ void GenCodeVisitor::visit(PrintStatement* stm) {
         out << "    movl $0, %eax" << endl;
         out << "    call printf@PLT" << endl;
     } else { //Si no es un entero, es un float, se printea de forma diferente
-        out << "    movsd %xmm0, %xmm0" << endl; 
         out << "    leaq print_float_fmt(%rip), %rdi" << endl;
         out << "    movl $1, %eax" << endl;
         out << "    call printf@PLT" << endl;
@@ -534,8 +610,8 @@ void GenCodeVisitor::visit(WhileStatement* stm) {
     out << ".while_end_" << labelId << ":" << endl;
 }
 
-void GenCodeVisitor::visit(ForStatement* stm) {
-    if (RangeExp* range = dynamic_cast<RangeExp*>(stm->range)) {
+void GenCodeVisitor::visit(ForStatement* stm) { //Verirficamos si es que el rango es de tipo rango, si usa un id o un metodo de arrays
+    if (RangeExp* range = dynamic_cast<RangeExp*>(stm->range)) { // Manejar for (i in range)
         int labelId = labelCounter++;
 
         // Evaluar y guardar start y end
@@ -610,6 +686,98 @@ void GenCodeVisitor::visit(ForStatement* stm) {
         
         out << "    jmp .for_start_" << labelId << endl;
         out << ".for_end_" << labelId << ":" << endl;
+    } else if (IdentifierExp* arrayId = dynamic_cast<IdentifierExp*>(stm->range)) { // Manejar for (i in arr)
+        int labelId = labelCounter++;
+        
+        if (memoria.find(stm->id) == memoria.end()) {
+            offset -= 8;
+            memoria[stm->id] = offset;
+            varTypes[stm->id] = getArrayElementType(arrayId->name);
+        }
+        
+        // Variable para el índice del loop
+        offset -= 8;
+        int indexOffset = offset;
+        
+        // Inicializar índice en 0
+        out << "    movq $0, %rax" << endl;
+        out << "    movq %rax, " << indexOffset << "(%rbp)" << endl;
+        
+        out << ".for_start_" << labelId << ":" << endl;
+        
+        // Verificar si el índice es menor que el tamaño del array
+        out << "    movq " << indexOffset << "(%rbp), %rax" << endl;
+        if (arrayInfo.count(arrayId->name)) {
+            out << "    cmpq $" << arrayInfo[arrayId->name].second << ", %rax" << endl;
+        } else {
+            out << "    cmpq $0, %rax" << endl;
+        }
+        out << "    jge .for_end_" << labelId << endl;
+        
+        arrayId->accept(this);
+        out << "    movq %rax, %rbx" << endl;
+        out << "    movq " << indexOffset << "(%rbp), %rcx" << endl;
+        out << "    imulq $8, %rcx" << endl;
+        out << "    addq %rcx, %rbx" << endl;
+        
+        if (arrayInfo.count(arrayId->name) && arrayInfo[arrayId->name].first == "Float") {
+            out << "    movsd (%rbx), %xmm0" << endl;
+            out << "    movsd %xmm0, " << memoria[stm->id] << "(%rbp)" << endl;
+        } else {
+            out << "    movq (%rbx), %rax" << endl;
+            out << "    movq %rax, " << memoria[stm->id] << "(%rbp)" << endl;
+        }
+        
+        // Ejecutar el cuerpo del loop
+        stm->body->accept(this);
+        
+        // Incrementar índice
+        out << "    movq " << indexOffset << "(%rbp), %rax" << endl;
+        out << "    incq %rax" << endl;
+        out << "    movq %rax, " << indexOffset << "(%rbp)" << endl;
+        
+        out << "    jmp .for_start_" << labelId << endl;
+        out << ".for_end_" << labelId << ":" << endl;
+    } else if (ArrayMethodExp* arrayMethod = dynamic_cast<ArrayMethodExp*>(stm->range)) {        // Manejar for (i in arr.indices)
+        if (arrayMethod->method == ArrayMethodType::INDICES) {
+            int labelId = labelCounter++;
+            
+            // Variable del loop para el índice
+            if (memoria.find(stm->id) == memoria.end()) {
+                offset -= 8;
+                memoria[stm->id] = offset;
+                varTypes[stm->id] = "Int";
+            }
+            
+            // Inicializar índice en 0
+            out << "    movq $0, %rax" << endl;
+            out << "    movq %rax, " << memoria[stm->id] << "(%rbp)" << endl;
+            
+            out << ".for_start_" << labelId << ":" << endl;
+            
+            // Verificar si el índice es menor que el tamaño del array
+            out << "    movq " << memoria[stm->id] << "(%rbp), %rax" << endl;
+            
+            // Obtener el tamaño del array
+            IdentifierExp* idExp = dynamic_cast<IdentifierExp*>(arrayMethod->array);
+            if (idExp && arrayInfo.count(idExp->name)) {
+                out << "    cmpq $" << arrayInfo[idExp->name].second << ", %rax" << endl;
+            } else {
+                out << "    cmpq $0, %rax" << endl;
+            }
+            out << "    jge .for_end_" << labelId << endl;
+            
+            // Ejecutar el cuerpo del loop
+            stm->body->accept(this);
+            
+            // Incrementar índice
+            out << "    movq " << memoria[stm->id] << "(%rbp), %rax" << endl;
+            out << "    incq %rax" << endl;
+            out << "    movq %rax, " << memoria[stm->id] << "(%rbp)" << endl;
+            
+            out << "    jmp .for_start_" << labelId << endl;
+            out << ".for_end_" << labelId << ":" << endl;
+        }
     }
 }
 
@@ -619,14 +787,14 @@ void GenCodeVisitor::visit(VarDec* stm) {
     if (!entornoFuncion) {
         memoriaGlobal[stm->id] = true;
     } else {
+        offset -= 8;
         memoria[stm->id] = offset;
         
         if (stm->value != nullptr) {
             // si la variable es un array, registro en arrayInfo
             if (ArrayExp* arr = dynamic_cast<ArrayExp*>(stm->value)) {
-                arr->accept(this); // genero el array y dejo la dirección base en %rax
                 allocateArray(stm->id, arr->elements.size(), arr->type);
-                // guardo la dirección base en la variable
+                arr->accept(this); //Creamos el array y lo generamo, ademas de guardarlo en la direcion base
                 out << "    movq %rax, " << memoria[stm->id] << "(%rbp)" << endl;
             } else if (stm->type == "Float") {
                 stm->value->accept(this);
@@ -637,7 +805,18 @@ void GenCodeVisitor::visit(VarDec* stm) {
             }
         }
         
-        offset -= 8;
+        if (stm->type.find("Array<") == 0 || stm->type.find("arrayOf<") == 0) {
+            size_t start = stm->type.find('<') + 1;
+            size_t end = stm->type.find('>');
+            if (start != string::npos && end != string::npos && end > start) {
+                string elementType = stm->type.substr(start, end - start);
+                // Si no fue registrado antes y no tenemos el valor
+                if (arrayInfo.find(stm->id) == arrayInfo.end() && stm->value == nullptr) {
+                    // Para arrays sin inicialización, registrar con tamaño 0 
+                    allocateArray(stm->id, 0, elementType);
+                }
+            }
+        }
     }
 }
 
@@ -692,14 +871,10 @@ void GenCodeVisitor::visit(FunDec* fundec) {
             ++typeIt;
         }
     }
+    out << "    subq $256, %rsp" << endl;
     if (fundec->cuerpo) {
         if (fundec->cuerpo->vardecs) {
             fundec->cuerpo->vardecs->accept(this);
-        }
-        
-        int reserva = -offset - 8;
-        if (reserva > 0) {
-            out << "    subq $" << reserva << ", %rsp" << endl;
         }
         
         if (fundec->cuerpo->slist) {
@@ -744,6 +919,7 @@ int GenCodeVisitor::visit(FCallExp* fcall) {
         out << "    addq $" << (numArgsOnStack * 8) << ", %rsp" << endl;
     }
     
+    isIntegerResult = true;
     return 0;
 }
 
@@ -800,6 +976,20 @@ bool GenCodeVisitor::needsFloatOperation(BinaryExp* exp) { // Verifica si una op
     if (IdentifierExp* id = dynamic_cast<IdentifierExp*>(exp->right)) {
         if (varTypes.count(id->name) && varTypes[id->name] == "Float") return true;
     }
+    if (ArrayAccessExp* arrayAccess = dynamic_cast<ArrayAccessExp*>(exp->left)) {
+        if (IdentifierExp* arrayId = dynamic_cast<IdentifierExp*>(arrayAccess->array)) {
+            if (arrayInfo.count(arrayId->name) && arrayInfo[arrayId->name].first == "Float") {
+                return true;
+            }
+        }
+    }
+    if (ArrayAccessExp* arrayAccess = dynamic_cast<ArrayAccessExp*>(exp->right)) {
+        if (IdentifierExp* arrayId = dynamic_cast<IdentifierExp*>(arrayAccess->array)) {
+            if (arrayInfo.count(arrayId->name) && arrayInfo[arrayId->name].first == "Float") {
+                return true;
+            }
+        }
+    }
 
     if (BinaryExp* binLeft = dynamic_cast<BinaryExp*>(exp->left)) {
         if (needsFloatOperation(binLeft)) return true;
@@ -845,6 +1035,13 @@ void GenCodeVisitor::collectConstantsFromExp(Exp* exp) { // Recorre la expresió
         if (range->step != nullptr) {
             collectConstantsFromExp(range->step);
         }
+    } else if (ArrayExp* arrayExp = dynamic_cast<ArrayExp*>(exp)) { // Recorre los elementos de un array y recoge constantes
+        for (auto element : arrayExp->elements) {
+            collectConstantsFromExp(element);
+        } 
+    } else if (ArrayAccessExp* arrayAccess = dynamic_cast<ArrayAccessExp*>(exp)) { //Si es un acceso de memoria, recupera el valor de los elementos del array como del indice
+        collectConstantsFromExp(arrayAccess->array);
+        collectConstantsFromExp(arrayAccess->index);
     }
 }
 
@@ -871,6 +1068,9 @@ void GenCodeVisitor::collectConstantsFromStmt(Stm* stmt) { // Recorre una senten
         collectConstantsFromExp(plusAssign->rhs);
     } else if (MinusAssignStatement* minusAssign = dynamic_cast<MinusAssignStatement*>(stmt)) {
         collectConstantsFromExp(minusAssign->rhs);
+    } else if (ArrayAssignStatement* arrayAssign = dynamic_cast<ArrayAssignStatement*>(stmt)) {
+        collectConstantsFromExp(arrayAssign->lhs);
+        collectConstantsFromExp(arrayAssign->rhs);
     } else if (PrintStatement* print = dynamic_cast<PrintStatement*>(stmt)) {
         collectConstantsFromExp(print->e);
     } else if (IfStatement* ifStmt = dynamic_cast<IfStatement*>(stmt)) {
@@ -892,6 +1092,10 @@ void GenCodeVisitor::collectConstantsFromStmt(Stm* stmt) { // Recorre una senten
             collectConstantsFromExp(range->end);
             if (range->step != nullptr) {
                 collectConstantsFromExp(range->step);
+            }
+        } else {
+            if (forStmt->range) { // Si es un array o método de array, recolectamos los elementos
+                collectConstantsFromExp(forStmt->range);
             }
         }
         collectConstantsFromBody(forStmt->body);
@@ -933,9 +1137,6 @@ int GenCodeVisitor::visit(ArrayMethodExp* exp) {
     return 0;
 }
 
-// ===================== ARRAYS =====================
-// Genera el código para crear un array (arrayOf<Int>(...))
-// En codegen.cpp
 
 // Implementación para generar código para arrayOf
 int GenCodeVisitor::visit(ArrayExp* exp) {
@@ -947,36 +1148,36 @@ int GenCodeVisitor::visit(ArrayExp* exp) {
         exit(1);
     }
 
-    // 1. Reservar espacio en el stack para el array
     int total_size = num_elements * element_size;
-    out << "    # Creando un array de tipo " << exp->type << " con " << num_elements << " elementos" << endl;
-    out << "    subq $" << total_size << ", %rsp" << endl;
+    
+    // Usar offset desde %rbp en lugar de %rsp para evitar corrupción de arrays
+    offset -= total_size;
+    int array_base_offset = offset;
 
-    // 2. Evaluar y guardar cada elemento en el stack
-    int current_offset = 0;
-    for (Exp* element_exp : exp->elements) {
-        element_exp->accept(this); // El resultado de la expresión estará en %rax (si es Int/Bool) o %xmm0 (si es Float)
+    // 2. Evaluar y guardar cada elemento en el stack usando offsets desde %rbp
+    for (int i = 0; i < num_elements; i++) {
+        exp->elements[i]->accept(this); // El resultado de la expresión estará en %rax (si es Int/Bool) o %xmm0 (si es Float)
 
+        int element_offset = array_base_offset + (i * element_size);
+        
         if (exp->type == "Float") {
              if (isIntegerResult) { // Si el elemento es un Int (e.g. arrayOf<Float>(1, 2.5))
-                out << "    cvtsi2sd %rax, %xmm0  # Convertir Int a Float" << endl;
+                out << "    cvtsi2sd %rax, %xmm0" << endl;
              }
-             out << "    movsd %xmm0, " << current_offset << "(%rsp) # Guardar elemento float en el array" << endl;
+             out << "    movsd %xmm0, " << element_offset << "(%rbp)" << endl;
         } else { // Int o Boolean
             if (!isIntegerResult) { // Si el elemento es un Float
                 // Aquí podrías decidir truncar el float a int o lanzar un error.
                 // Por simplicidad, lo truncamos.
-                 out << "    cvttsd2si %xmm0, %rax # Convertir (truncar) Float a Int" << endl;
+                 out << "    cvttsd2si %xmm0, %rax" << endl;
             }
-            out << "    movq %rax, " << current_offset << "(%rsp) # Guardar elemento int/bool en el array" << endl;
+            out << "    movq %rax, " << element_offset << "(%rbp)" << endl;
         }
-
-        current_offset += element_size;
     }
 
     // 3. El resultado de la expresión 'arrayOf' es un puntero al inicio del array.
-    //    Dejamos esta dirección (el valor actual de %rsp) en %rax.
-    out << "    movq %rsp, %rax" << endl;
+    //    Calculamos la dirección del array usando el %rbp
+    out << "    leaq " << array_base_offset << "(%rbp), %rax" << endl;
 
     // Marcamos que el resultado es un puntero (un entero en ensamblador).
     isIntegerResult = true;
@@ -994,16 +1195,26 @@ int GenCodeVisitor::visit(ArrayAccessExp* exp) {
     out << "    movq %rax, %rcx" << endl; // Índice en %rcx
     out << "    imulq $8, %rcx" << endl; // Multiplicar por 8 (tamaño de elemento)
     out << "    addq %rcx, %rbx" << endl; // Sumar desplazamiento
-    // Cargar el valor
-    // Para saber si es float o int, intentamos deducirlo del tipo del array
-    // Por simplicidad, asumimos int (movq), si necesitas float, ajusta aquí
-    out << "    movq (%rbx), %rax" << endl;
-    isIntegerResult = true;
+
+    bool isFloatArray = false;
+    if (IdentifierExp* arrayId = dynamic_cast<IdentifierExp*>(exp->array)) {
+        if (arrayInfo.count(arrayId->name) && arrayInfo[arrayId->name].first == "Float") {
+            isFloatArray = true;
+        }
+    }
+    
+    // Cargar el valor según el tipo
+    if (isFloatArray) {
+        out << "    movsd (%rbx), %xmm0" << endl;
+        isIntegerResult = false;
+    } else {
+        out << "    movq (%rbx), %rax" << endl;
+        isIntegerResult = true;
+    }
     return 0;
 }
 
-// ===================== ARRAYS HELPERS =====================
-// Implementación de allocateArray: registra el array en arrayInfo
+// Registramos el array, con su tipo y el tamaño que requiere
 void GenCodeVisitor::allocateArray(const std::string& arrayName, int size, const std::string& type) {
     arrayInfo[arrayName] = std::make_pair(type, size);
 }
