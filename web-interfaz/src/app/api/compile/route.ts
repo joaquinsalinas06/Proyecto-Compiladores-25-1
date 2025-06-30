@@ -436,7 +436,7 @@ fun main() {
 // ✨ EJECUTAR ASSEMBLY en Linux/Unix
 export async function PUT(request: NextRequest) {
   try {
-    const { assemblyCode } = await request.json();
+    const { assemblyCode, filename } = await request.json();
     
     // Solo permitir en sistemas Unix/Linux
     const isWindows = process.platform === 'win32';
@@ -451,10 +451,27 @@ export async function PUT(request: NextRequest) {
     const webDir = path.join(process.cwd(), '..', 'inputs', 'web');
     await mkdir(webDir, { recursive: true });
     
-    // Crear archivo assembly temporal
-    const assemblyFilename = `temp_${Date.now()}.s`;
-    const assemblyPath = path.join(webDir, assemblyFilename);
-    await writeFile(assemblyPath, assemblyCode, 'utf8');
+    // Usar el archivo assembly existente si se proporciona filename
+    let assemblyPath: string;
+    if (filename) {
+      assemblyPath = path.join(webDir, filename);
+      // Verificar que el archivo existe
+      try {
+        await access(assemblyPath, constants.F_OK);
+        console.log(`✅ Usando archivo assembly existente: ${filename}`);
+      } catch (accessError) {
+        console.log(`❌ Archivo assembly no encontrado: ${filename}`);
+        return NextResponse.json({
+          success: false,
+          error: `Archivo assembly no encontrado: ${filename}`
+        }, { status: 400 });
+      }
+    } else {
+      // Fallback: crear archivo assembly temporal (comportamiento anterior)
+      const assemblyFilename = `temp_${Date.now()}.s`;
+      assemblyPath = path.join(webDir, assemblyFilename);
+      await writeFile(assemblyPath, assemblyCode, 'utf8');
+    }
     
     // Compilar con gcc
     const executableName = `exec_${Date.now()}`;
@@ -542,8 +559,13 @@ export async function PUT(request: NextRequest) {
       
       // Limpiar archivos temporales
       try {
-        await unlink(assemblyPath);
+        // Solo eliminar el archivo assembly si lo creamos nosotros (no el existente)
+        if (!filename) {
+          await unlink(assemblyPath);
+          console.log('🗑️ Archivo assembly temporal eliminado');
+        }
         await unlink(executablePath);
+        console.log('🗑️ Ejecutable eliminado');
       } catch (cleanupError) {
         console.log('Error limpiando archivos:', cleanupError);
       }
@@ -560,10 +582,13 @@ export async function PUT(request: NextRequest) {
       
       // Limpiar archivos en caso de error
       try {
-        await unlink(assemblyPath);
-        console.log('🗑️ Archivo assembly eliminado');
+        // Solo eliminar el archivo assembly si lo creamos nosotros (no el existente)
+        if (!filename) {
+          await unlink(assemblyPath);
+          console.log('🗑️ Archivo assembly temporal eliminado');
+        }
       } catch {
-        console.log('⚠️ No se pudo eliminar archivo assembly');
+        console.log('⚠️ No se pudo eliminar archivo assembly temporal');
       }
       
       try {
