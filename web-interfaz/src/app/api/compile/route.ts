@@ -493,7 +493,7 @@ export async function PUT(request: NextRequest) {
         await access(executablePath, constants.F_OK);
         console.log('✅ Ejecutable existe');
       } catch (accessError) {
-        console.log('❌ Ejecutable no existe después de compilación');
+        console.log('❌ Ejecutable no existe después de compilación:', accessError);
         return NextResponse.json({
           success: false,
           error: `El ejecutable no se creó correctamente. Compilación falló silenciosamente.`,
@@ -517,7 +517,7 @@ export async function PUT(request: NextRequest) {
         await access(executablePath, constants.X_OK);
         console.log('✅ Ejecutable tiene permisos de ejecución');
       } catch (execAccessError) {
-        console.log('❌ Ejecutable no tiene permisos de ejecución');
+        console.log('❌ Ejecutable no tiene permisos de ejecución:', execAccessError);
         return NextResponse.json({
           success: false,
           error: `El ejecutable se creó pero no tiene permisos de ejecución.`,
