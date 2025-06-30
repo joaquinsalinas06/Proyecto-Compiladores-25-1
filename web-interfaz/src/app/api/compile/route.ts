@@ -489,7 +489,7 @@ export async function PUT(request: NextRequest) {
       try {
         await access(assemblyPath, constants.F_OK);
         console.log(`✅ Usando archivo assembly existente: ${filename}`);
-      } catch (accessError) {
+      } catch {
         console.log(`❌ Archivo assembly no encontrado: ${filename}`);
         return NextResponse.json({
           success: false,
