@@ -1,0 +1,12 @@
+fun main() {
+    var x : Int = 5
+    var y : Int = 0
+
+    if (0<x){
+        y = (x+1)*(x+1)
+    }
+    else{
+         y=x
+    }
+    println(y)
+}

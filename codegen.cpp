@@ -883,6 +883,9 @@ void GenCodeVisitor::visit(FunDec* fundec) {
     }
 
     out << ".end_" << fundec->nombre << ":" << endl;
+    if (fundec->nombre == "main") {
+        out << "    movq $0, %rax" << endl;
+    }
     out << "    leave" << endl;
     out << "    ret" << endl;
     

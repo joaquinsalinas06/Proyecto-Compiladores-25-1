@@ -452,7 +452,7 @@ export async function PUT(request: NextRequest) {
     await mkdir(webDir, { recursive: true });
     
     // Crear archivo assembly temporal
-    const assemblyFilename = `exec_${Date.now()}.s`;
+    const assemblyFilename = `temp_${Date.now()}.s`;
     const assemblyPath = path.join(webDir, assemblyFilename);
     await writeFile(assemblyPath, assemblyCode, 'utf8');
     
