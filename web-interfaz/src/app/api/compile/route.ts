@@ -298,21 +298,39 @@ export async function GET() {
     const examples: { [key: string]: string } = {};
     
     // Categorías definidas en tu make.py (basado en input_categories)
-    const categories: { [key: string]: string } = {
-      "vars": "inputs/vars",           // 3 ejemplos de declaración de variables
-      "exp": "inputs/exp",             // 3 ejemplos de expresiones  
-      "selectivas": "inputs/selectivas", // 6 ejemplos de control selectivo
-      "funciones": "inputs/funciones", // 3 ejemplos de funciones
-      "floats": "inputs/floats",       // 5 ejemplos de primera extensión (floats)
-      "arrays": "inputs/arrays"        // 5 ejemplos de segunda extensión (arrays)
+    const categories: { [key: string]: { path: string, description: string } } = {
+      "vars": { 
+        path: "inputs/vars", 
+        description: "Variable declaration and assignment examples"
+      },
+      "exp": { 
+        path: "inputs/exp", 
+        description: "Mathematical expressions and operator precedence"
+      },
+      "selectivas": { 
+        path: "inputs/selectivas", 
+        description: "Conditional statements (if-else) and nested conditions"
+      },
+      "funciones": { 
+        path: "inputs/funciones", 
+        description: "Function definitions, calls, and return values"
+      },
+      "floats": { 
+        path: "inputs/floats", 
+        description: "Float operations and decimal number handling"
+      },
+      "arrays": { 
+        path: "inputs/arrays", 
+        description: "Array creation, indexing, iteration, and methods"
+      }
     };
     
     const basePath = path.join(process.cwd(), '..');
     
     // Para cada categoría, leer archivos .txt disponibles
-    for (const [categoryName, categoryPath] of Object.entries(categories)) {
+    for (const [categoryName, categoryInfo] of Object.entries(categories)) {
       try {
-        const fullCategoryPath = path.join(basePath, categoryPath);
+        const fullCategoryPath = path.join(basePath, categoryInfo.path);
         const files = await readdir(fullCategoryPath);
         
         // Buscar archivos .txt, preferir los numerados (1_, 2_, etc.)
@@ -350,71 +368,83 @@ export async function GET() {
         // Si no se encontró contenido válido, usar ejemplos actualizados de los archivos reales
         if (!examples[categoryName]) {
           const fallbackExamples: { [key: string]: string } = {
-            vars: `var x : Int = 10
+            vars: `// Variable Declaration and Assignment
+// Global variables with initialization
+var x : Int = 10
 var y : Int = 20
 
 fun main(){
-    println(x)
-    println(y)
-    println(x + y)
+    println(x)  // Print global variable x
+    println(y)  // Print global variable y
+    println(x + y)  // Print sum of variables
 }`,
-            exp: `var x : Int = 5
+            exp: `// Mathematical Expressions
+// Demonstrates operator precedence and grouping
+var x : Int = 5
 var y : Int = 3
 
 fun main() {
-    println(x + y * 2)
-    println((x + y) * 2)
-    println(x * y + 1)
+    println(x + y * 2)    // 11 (multiplication first)
+    println((x + y) * 2)  // 16 (parentheses first)
+    println(x * y + 1)    // 16 (multiplication first)
 }`,
-            selectivas: `var x : Int = 15
+            selectivas: `// Conditional Statements
+// Basic if-else with comparison operators
+var x : Int = 15
 var y : Int = 10
 var result : Int = 0
 
 fun main() {
     if (x > y) {
-        result = x + y
+        result = x + y  // Addition if condition true
         println(result)
     } else {
-        result = x - y
+        result = x - y  // Subtraction if condition false
         println(result)
     }
 }`,
-            funciones: `fun mostrar(): Int {
-  println(42)
-  return 1
+            funciones: `// Function Definition and Calls
+// Function with return value
+fun mostrar(): Int {
+  println(42)  // Print inside function
+  return 1     // Return integer value
 }
 
 fun main(){
   var result : Int
-  result = mostrar()
-  println(result)
+  result = mostrar()  // Call function and store result
+  println(result)     // Print returned value
 }`,
-            floats: `var x : Float = 10.5f
+            floats: `// Float Operations
+// Decimal number declarations and arithmetic
+var x : Float = 10.5f
 var y : Float = 20.3f
 
 fun main() {
-    println(x)
-    println(y)
-    println(x + y)
+    println(x)      // Print first float
+    println(y)      // Print second float
+    println(x + y)  // Print sum of floats
 }`,
-            arrays: `var nums = arrayOf<Int>(1, 2, 3, 4, 5)
+            arrays: `// Array Operations
+// Array creation, iteration, and element access
+var nums = arrayOf<Int>(1, 2, 3, 4, 5)
 var efe = arrayOf<Float>(1.5f, 2.5f, 3.5f)
 
 fun main() {
-    println(nums.size)
+    println(nums.size)  // Print array size
 
-    for (i in nums.indices) {
-        println(nums[i])
+    for (i in nums.indices) {  // Iterate through indices
+        println(nums[i])       // Print each element
     }
 
-    println(efe[0] + efe[1])
+    println(efe[0] + efe[1])   // Access and add elements
 }`
           };
           
-          examples[categoryName] = fallbackExamples[categoryName] || `fun main(): Int {
+          examples[categoryName] = fallbackExamples[categoryName] || `// Basic Example
+fun main() {
     var ejemplo: Int = 42
     println(ejemplo)
-    return 0
 }`;
         }
         

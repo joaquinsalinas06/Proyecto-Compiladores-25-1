@@ -145,12 +145,15 @@ interface CompileResult {
 }
 
 export default function KotlinCompiler() {
-  const [code, setCode] = useState(`fun main(): Int {
-    var numero1: Int = 10
-    var numero2: Int = 5
-    var suma: Int = numero1 + numero2
-    println(suma)
-    return 0
+  const [code, setCode] = useState(`// Variable Declaration and Assignment
+// Global variables with initialization
+var x : Int = 10
+var y : Int = 20
+
+fun main(){
+    println(x)  // Print global variable x
+    println(y)  // Print global variable y
+    println(x + y)  // Print sum of variables
 }`)
 
   const [output, setOutput] = useState("")
@@ -178,6 +181,11 @@ export default function KotlinCompiler() {
         if (response.ok) {
           const examples = await response.json()
           setDynamicExamples(examples)
+          
+          // Cargar automáticamente el ejemplo de variables si está disponible
+          if (examples.vars) {
+            setCode(examples.vars)
+          }
         }
       } catch (error) {
         console.error("Error cargando ejemplos dinámicos:", error)
@@ -245,76 +253,14 @@ export default function KotlinCompiler() {
     }
   }, [output]) // Solo depende de output para evitar bucle infinito
 
-  const examples = {
-    variables: {
-      name: "Variables",
-      code: `fun main(): Int {
-    var edad: Int = 25
-    var altura: Float = 1.75f
-    var activo: Int = 1
-    println(edad)
-    println(altura)
-    println(activo)
-    return 0
-}`,
-    },
-    expressions: {
-      name: "Expresiones",
-      code: `fun main(): Int {
-    var numero1: Int = 15
-    var numero2: Int = 8
-    var suma: Int = numero1 + numero2
-    var producto: Int = numero1 * numero2
-    var resultado: Int = (suma + producto) / 2
-    println(suma)
-    println(producto)
-    println(resultado)
-    return 0
-}`,
-    },
-    conditionals: {
-      name: "Condicionales",
-      code: `fun main(): Int {
-    var puntuacion: Int = 85
-    var resultado: Int = 0
-    if (puntuacion >= 90) {
-        resultado = 10
-    } else if (puntuacion >= 70) {
-        resultado = 8
-    } else {
-        resultado = 5
-    }
-    println(resultado)
-    return 0
-}`,
-    },
-    floats: {
-      name: "Números Decimales",
-      code: `fun main(): Int {
-    var temperatura: Float = 23.5f
-    var factor: Float = 1.8f
-    var fahrenheit: Float = temperatura * factor + 32.0f
-    var entero: Int = 100
-    println(temperatura)
-    println(fahrenheit)
-    println(entero)
-    return 0
-}`,
-    },
-    functions: {
-      name: "Funciones",
-      code: `fun calcular(valor1: Int, valor2: Int): Int {
-    var temp: Int = valor1 + valor2 * 2
-    return temp
-}
-
-fun main(): Int {
-    var numero: Int = 10
-    var resultado: Int = calcular(numero, 5)
-    println(resultado)
-    return 0
-}`,
-    },
+  // Categorías de ejemplos con descripciones 
+  const exampleCategories = {
+    vars: { name: "Variables", description: "Variable declaration and assignment", icon: "📝" },
+    exp: { name: "Expressions", description: "Mathematical expressions and operators", icon: "🧮" },
+    selectivas: { name: "Conditionals", description: "If-else statements and logic", icon: "🔀" },
+    funciones: { name: "Functions", description: "Function definitions and calls", icon: "⚙️" },
+    floats: { name: "Floats", description: "Decimal numbers and operations", icon: "🔢" },
+    arrays: { name: "Arrays", description: "Array creation and manipulation", icon: "📋" }
   }
 
   const handleCompile = async () => {
@@ -422,16 +368,17 @@ fun main(): Int {
   }
 
   const loadExample = (exampleKey: string) => {
-    // Buscar primero en ejemplos dinámicos
+    // Cargar ejemplo dinámico desde la API
     if (dynamicExamples[exampleKey]) {
       setCode(dynamicExamples[exampleKey])
-      return
-    }
-    
-    // Fallback a ejemplos estáticos
-    const example = examples[exampleKey as keyof typeof examples]
-    if (example) {
-      setCode(example.code)
+      
+      // Limpiar el output al cambiar de ejemplo
+      setOutput("")
+      setAssembly("")
+      setDisplayedOutput("")
+      setIsTyping(false)
+      setTypingComplete(false)
+      setExecutionTime(null)
     }
   }
 
@@ -541,36 +488,26 @@ fun main(): Int {
                   <SelectValue placeholder={loadingExamples ? "Cargando..." : "Cargar ejemplo..."} />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border border-purple-500/30 backdrop-blur-xl">
-                  {/* Ejemplos dinámicos primero */}
-                  {Object.entries(dynamicExamples).map(([key]) => (
-                    <SelectItem key={key} value={key} className="text-gray-100 hover:bg-purple-500/20 focus:bg-purple-500/20 cursor-pointer">
-                      <div className="flex items-center gap-2">
-                        <FileCode className="w-4 h-4 text-cyan-400" />
-                        <span className="capitalize">{key.replace('_', ' ')}</span>
-                        <Badge variant="outline" className="ml-auto text-xs text-green-400 border-green-400/30">
-                          Real
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
-                  
-                  {/* Separador si hay ejemplos dinámicos */}
-                  {Object.keys(dynamicExamples).length > 0 && (
-                    <div className="h-px bg-purple-500/30 my-2 mx-2" />
-                  )}
-                  
-                  {/* Ejemplos estáticos como fallback */}
-                  {Object.entries(examples).map(([key, example]) => (
-                    <SelectItem key={key} value={key} className="text-gray-100 hover:bg-purple-500/20 focus:bg-purple-500/20 cursor-pointer">
-                      <div className="flex items-center gap-2">
-                        <FileCode className="w-4 h-4 text-purple-400" />
-                        {example.name}
-                        <Badge variant="outline" className="ml-auto text-xs text-gray-400 border-gray-500/30">
-                          Demo
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {/* Ejemplos dinámicos por categoría */}
+                  {Object.entries(exampleCategories).map(([key, category]) => {
+                    const hasExample = dynamicExamples[key]
+                    if (!hasExample) return null
+                    
+                    return (
+                      <SelectItem key={key} value={key} className="text-gray-100 hover:bg-purple-500/20 focus:bg-purple-500/20 cursor-pointer">
+                        <div className="flex items-center gap-3 py-1">
+                          <span className="text-lg">{category.icon}</span>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{category.name}</span>
+                            <span className="text-xs text-gray-400">{category.description}</span>
+                          </div>
+                          <Badge variant="outline" className="ml-auto text-xs text-green-400 border-green-400/30">
+                            Live
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
 
