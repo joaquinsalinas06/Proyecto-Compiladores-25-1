@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, unlink, mkdir, readFile, readdir } from 'fs/promises';
+import { writeFile, unlink, mkdir, readFile, readdir, access, chmod } from 'fs/promises';
+import { constants } from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
@@ -463,27 +464,81 @@ export async function PUT(request: NextRequest) {
     console.log(`Compilando assembly: ${compileCmd}`);
     
     try {
+      // Step 1: Compile the assembly code
+      console.log(`🔨 Iniciando compilación: ${compileCmd}`);
       const { stdout: compileStdout, stderr: compileStderr } = await execAsync(compileCmd, {
         cwd: path.join(process.cwd(), '..'),
-        timeout: 15000
+        timeout: 15000,
+        maxBuffer: 1024 * 1024
       });
       
-      if (compileStderr && compileStderr.includes('error')) {
+      console.log('📋 Resultado de compilación:');
+      console.log('STDOUT:', compileStdout);
+      console.log('STDERR:', compileStderr);
+      
+      // Check for compilation errors
+      if (compileStderr && (compileStderr.includes('error') || compileStderr.includes('Error'))) {
+        console.log('❌ Error detectado en compilación');
         return NextResponse.json({
           success: false,
-          error: `Error de compilación: ${compileStderr}`,
-          output: null
+          error: `Error de compilación GCC: ${compileStderr}`,
+          output: null,
+          compileOutput: compileStdout
         }, { status: 400 });
       }
       
-      // Ejecutar el binario compilado
+      // Step 2: Verify the executable file exists and is accessible
+      console.log(`🔍 Verificando existencia del ejecutable: ${executablePath}`);
+      try {
+        await access(executablePath, constants.F_OK);
+        console.log('✅ Ejecutable existe');
+      } catch (accessError) {
+        console.log('❌ Ejecutable no existe después de compilación');
+        return NextResponse.json({
+          success: false,
+          error: `El ejecutable no se creó correctamente. Compilación falló silenciosamente.`,
+          output: null,
+          compileOutput: compileStdout,
+          compileError: compileStderr
+        }, { status: 500 });
+      }
+      
+      // Step 3: Set executable permissions (Linux/Unix)
+      try {
+        await chmod(executablePath, 0o755);
+        console.log('✅ Permisos de ejecución asignados');
+      } catch (chmodError) {
+        console.log('⚠️ No se pudieron asignar permisos:', chmodError);
+        // Continue anyway, might still work
+      }
+      
+      // Step 4: Double-check file is executable
+      try {
+        await access(executablePath, constants.X_OK);
+        console.log('✅ Ejecutable tiene permisos de ejecución');
+      } catch (execAccessError) {
+        console.log('❌ Ejecutable no tiene permisos de ejecución');
+        return NextResponse.json({
+          success: false,
+          error: `El ejecutable se creó pero no tiene permisos de ejecución.`,
+          output: null,
+          compileOutput: compileStdout
+        }, { status: 500 });
+      }
+      
+      // Step 5: Execute the binary
       const executeCmd = `"${executablePath}"`;
-      console.log(`Ejecutando assembly: ${executeCmd}`);
+      console.log(`🚀 Ejecutando binario: ${executeCmd}`);
       
       const { stdout: execStdout, stderr: execStderr } = await execAsync(executeCmd, {
         cwd: path.join(process.cwd(), '..'),
-        timeout: 10000
+        timeout: 10000,
+        maxBuffer: 1024 * 1024
       });
+      
+      console.log('📋 Resultado de ejecución:');
+      console.log('STDOUT:', execStdout);
+      console.log('STDERR:', execStderr);
       
       // Limpiar archivos temporales
       try {
@@ -501,20 +556,47 @@ export async function PUT(request: NextRequest) {
       });
       
     } catch (error: unknown) {
+      console.error('❌ Error en proceso de compilación/ejecución:', error);
+      
       // Limpiar archivos en caso de error
       try {
         await unlink(assemblyPath);
-        await unlink(executablePath);
+        console.log('🗑️ Archivo assembly eliminado');
       } catch {
-        // Ignorar errores de limpieza
+        console.log('⚠️ No se pudo eliminar archivo assembly');
       }
       
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      try {
+        await unlink(executablePath);
+        console.log('🗑️ Ejecutable eliminado');
+      } catch {
+        console.log('⚠️ No se pudo eliminar ejecutable (probablemente no existía)');
+      }
+      
+      let errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      
+      // Provide more specific error messages
+      if (errorMessage.includes('ENOENT')) {
+        errorMessage = 'Archivo no encontrado. El ejecutable no se compiló correctamente.';
+      } else if (errorMessage.includes('EACCES')) {
+        errorMessage = 'Permisos insuficientes para ejecutar el binario.';
+      } else if (errorMessage.includes('timeout')) {
+        errorMessage = 'Tiempo de ejecución agotado. El programa puede estar en un bucle infinito.';
+      } else if (errorMessage.includes('spawn')) {
+        errorMessage = 'No se pudo iniciar el proceso de ejecución.';
+      }
+      
+      console.error('📝 Error final:', errorMessage);
       
       return NextResponse.json({
         success: false,
         error: `Error ejecutando assembly: ${errorMessage}`,
-        output: null
+        output: null,
+        debugInfo: error instanceof Error ? {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        } : null
       }, { status: 500 });
     }
     
