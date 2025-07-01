@@ -88,6 +88,48 @@ En el TypeChecker establece compatibilidad bidireccional entre Int y Float en op
 
 La **generación de código** utiliza registros XMM y el conjunto de instrucciones SSE para operaciones de punto flotante. Estos registros XMM son registros especiales introducidos a Assembly, con una capacidad de 128 bits, lo cual permite almacenar los valores junto con los 6 a 7 decimales que se traen los float. Los valores float se almacenan en la sección `.rodata` del assembly generado, optimizando el acceso a memoria.
 
+#### Generación de Código Assembly para Floats
+
+**Asignación de Float (var x: Float = 3.14f):**
+| Instrucción | Descripción |
+|-------------|-------------|
+| Genera código para DecimalExp (3.14f) ||
+| `movsd .L_float_1(%rip), %xmm0` | Carga el literal 3.14f desde .rodata al registro XMM0 |
+| `movsd %xmm0, -8(%rbp)` | Almacena el valor float en la variable x en la pila |
+
+**Conversión Int a Float (operación mixta):**
+| Instrucción | Descripción |
+|-------------|-------------|
+| Genera código para operando Int (intExp->accept(this)) ||
+| `movq %rax, -32(%rbp)` | Almacena temporalmente el valor entero |
+| Genera código para operando Float (floatExp->accept(this)) ||
+| `movsd %xmm0, -24(%rbp)` | Almacena temporalmente el valor float |
+| `movq -32(%rbp), %rax` | Recupera el valor entero |
+| `cvtsi2sd %rax, %xmm0` | Convierte el entero a float en %xmm0 |
+| `movsd -24(%rbp), %xmm1` | Recupera el operando float |
+| `addsd %xmm1, %xmm0` | Realiza la operación mixta (Int + Float) |
+
+**Operaciones Aritméticas Float:**
+| Instrucción | Descripción |
+|-------------|-------------|
+| Genera código para operando izquierdo (left->accept(this)) ||
+| `movsd %xmm0, -24(%rbp)` | Almacena temporalmente el resultado del operando izquierdo |
+| Genera código para operando derecho (right->accept(this)) ||
+| `movsd -24(%rbp), %xmm1` | Recupera el operando izquierdo al registro XMM1 |
+| `addsd %xmm0, %xmm1` | Suma: %xmm1 = %xmm1 + %xmm0 |
+| `subsd %xmm0, %xmm1` | Resta: %xmm1 = %xmm1 - %xmm0 |
+| `mulsd %xmm0, %xmm1` | Multiplicación: %xmm1 = %xmm1 * %xmm0 |
+| `divsd %xmm0, %xmm1` | División: %xmm1 = %xmm1 / %xmm0 |
+| `movsd %xmm1, %xmm0` | Mueve el resultado final a %xmm0 |
+
+**Sección .rodata para constantes float:**
+```assembly
+.L_float_1:
+    .double 3.14159
+.L_float_2:
+    .double 2.71828
+```
+
 #### Estructura de Visitors
 ```cpp
 int PrintVisitor::visit(DecimalExp* exp) {
@@ -212,6 +254,73 @@ El sistema de arrays fuerza a que este sea de un tipado único, donde todos los 
 La indexación utiliza **índices base cero**, donde `array[0]` representa el primer elemento. Esta convención se mantiene consistente tanto en el acceso directo como en los métodos `.indices`.
 
 Los **métodos incorporados** forman parte integral del sistema de tipos: `.size` devuelve un valor Int que representa la cardinalidad del array, mientras que `.indices` produce un `Array<Int>` conteniendo la secuencia `[0, 1, 2, ..., size-1]`. Esta implementación permite una iteración más segura sobre todo un elemento del array, además de poder realizar operaciones más complejas en el futuro con los atributos dados.
+
+#### Generación de Código Assembly para Arrays
+
+**Declaración de Array (arrayOf<Int>(1, 2, 3)):**
+| Instrucción | Descripción |
+|-------------|-------------|
+| `subq $24, %rsp` | Reserva espacio en la pila para 3 elementos (3 * 8 bytes) |
+| Genera código para elemento 1 (elements[0]->accept(this)) ||
+| `movq %rax, -8(%rbp)` | Almacena el primer elemento en posición 0 |
+| Genera código para elemento 2 (elements[1]->accept(this)) ||
+| `movq %rax, -16(%rbp)` | Almacena el segundo elemento en posición 1 |
+| Genera código para elemento 3 (elements[2]->accept(this)) ||
+| `movq %rax, -24(%rbp)` | Almacena el tercer elemento en posición 2 |
+| `leaq -8(%rbp), %rax` | Carga la dirección base del array en %rax |
+| `movq %rax, -32(%rbp)` | Almacena la dirección del array en la variable |
+| `movq $3, -40(%rbp)` | Almacena el tamaño del array (metadato) |
+
+**Acceso a Elementos (array[index]):**
+| Instrucción | Descripción |
+|-------------|-------------|
+| Genera código para el array (array->accept(this)) ||
+| `movq %rax, -48(%rbp)` | Almacena temporalmente la dirección del array |
+| Genera código para el índice (index->accept(this)) ||
+| `movq %rax, %rbx` | Mueve el índice calculado a %rbx |
+| `movq -48(%rbp), %rax` | Recupera la dirección base del array |
+| `imulq $8, %rbx` | Multiplica índice por 8 (tamaño de palabra en bytes) |
+| `addq %rbx, %rax` | Calcula dirección: base + (índice * 8) |
+| `movq (%rax), %rax` | Desreferencia para obtener el valor del elemento |
+
+**Asignación a Elementos (array[index] = value):**
+| Instrucción | Descripción |
+|-------------|-------------|
+| Genera código para el array (arrayAccess->array->accept(this)) ||
+| `movq %rax, -48(%rbp)` | Almacena temporalmente la dirección del array |
+| Genera código para el índice (arrayAccess->index->accept(this)) ||
+| `movq %rax, %rbx` | Mueve el índice a %rbx |
+| `movq -48(%rbp), %rax` | Recupera la dirección del array |
+| `imulq $8, %rbx` | Multiplica índice por tamaño de elemento |
+| `addq %rbx, %rax` | Calcula dirección del elemento destino |
+| `movq %rax, -56(%rbp)` | Almacena la dirección destino |
+| Genera código para el valor (rhs->accept(this)) ||
+| `movq %rax, %rbx` | Mueve el valor a asignar a %rbx |
+| `movq -56(%rbp), %rax` | Recupera la dirección destino |
+| `movq %rbx, (%rax)` | Almacena el valor en la posición calculada |
+
+**Método .size:**
+| Instrucción | Descripción |
+|-------------|-------------|
+| Genera código para el array (array->accept(this)) ||
+| `movq -40(%rbp), %rax` | Carga el tamaño almacenado del array (metadato) |
+
+**Método .indices:**
+| Instrucción | Descripción |
+|-------------|-------------|
+| Genera código para el array (array->accept(this)) ||
+| `movq -40(%rbp), %rcx` | Carga el tamaño del array original |
+| `imulq $8, %rcx` | Calcula espacio necesario (tamaño * 8) |
+| `subq %rcx, %rsp` | Reserva espacio para el array de índices |
+| `movq $0, %rax` | Inicializa contador en 0 |
+| **loop_indices:** | Etiqueta de inicio del bucle |
+| `cmpq -40(%rbp), %rax` | Compara contador con tamaño original |
+| `jge end_indices` | Si contador >= tamaño, termina |
+| `movq %rax, -64(%rbp, %rax, 8)` | Almacena índice actual en array resultado |
+| `incq %rax` | Incrementa contador |
+| `jmp loop_indices` | Repite el bucle |
+| **end_indices:** | Etiqueta de fin del bucle |
+| `leaq -64(%rbp), %rax` | Retorna dirección del array de índices |
 
 ---
 
